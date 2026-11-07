@@ -1,7 +1,7 @@
 {
  "app": "League Secretary",
  "format": 1,
- "exportedAt": "2026-11-07T21:44:18.204Z",
+ "exportedAt": "2026-11-07T22:36:29.487Z",
  "config": {
   "name": "Fishers Island Bowling League",
   "teamsCount": 4,
@@ -20,14 +20,14 @@
     "name": "Team 1",
     "players": [
      {
-      "id": "t1p1",
-      "name": "Donnie",
-      "startAvg": 194
-     },
-     {
       "id": "t1p2",
       "name": "Todd",
       "startAvg": 80
+     },
+     {
+      "id": "t1p4",
+      "name": "John",
+      "startAvg": 76
      },
      {
       "id": "t1p3",
@@ -35,9 +35,9 @@
       "startAvg": 93
      },
      {
-      "id": "t1p4",
-      "name": "John",
-      "startAvg": 76
+      "id": "t1p1",
+      "name": "Donnie",
+      "startAvg": 194
      }
     ]
    },
@@ -46,14 +46,9 @@
     "name": "Team 2",
     "players": [
      {
-      "id": "t2p1",
-      "name": "Skinner",
-      "startAvg": 154
-     },
-     {
-      "id": "t2p2",
-      "name": "Ez",
-      "startAvg": 89
+      "id": "t2p4",
+      "name": "David",
+      "startAvg": 98
      },
      {
       "id": "t2p3",
@@ -61,9 +56,14 @@
       "startAvg": 106
      },
      {
-      "id": "t2p4",
-      "name": "David",
-      "startAvg": 98
+      "id": "t2p2",
+      "name": "Ez",
+      "startAvg": 89
+     },
+     {
+      "id": "t2p1",
+      "name": "Skinner",
+      "startAvg": 154
      }
     ]
    },
@@ -103,6 +103,11 @@
       "startAvg": 80
      },
      {
+      "id": "t4p4",
+      "name": "Emily",
+      "startAvg": 72
+     },
+     {
       "id": "t4p2",
       "name": "Thomas",
       "startAvg": 113
@@ -111,11 +116,6 @@
       "id": "t4p3",
       "name": "Fergus",
       "startAvg": 116
-     },
-     {
-      "id": "t4p4",
-      "name": "Emily",
-      "startAvg": 72
      }
     ]
    }
