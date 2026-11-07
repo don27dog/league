@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>League Secretary</title>
+<meta name="theme-color" content="#1d5aa0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style id="appcss">
+html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: score-sheet app — lane-blue header band, tab strip, ruled tables like a league recap sheet */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#15212c; --muted:#5b6876; --line:#d9dfe5;
+  --lane:#1d5aa0; --lane-ink:#ffffff; --pin:#c4313b; --maple:#c99550; --good:#1f7a4d; --soft:#e8eef5;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3642;
+  --lane:#4b8ad6; --lane-ink:#0b1219; --pin:#ee5d66; --maple:#d9aa66; --good:#4cc08a; --soft:#1d2a37; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3642;
+  --lane:#4b8ad6; --lane-ink:#0b1219; --pin:#ee5d66; --maple:#d9aa66; --good:#4cc08a; --soft:#1d2a37; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--lane);color:var(--lane-ink)}
+header.band .wrap{padding-block:18px 0;display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:2.1rem;letter-spacing:.02em;margin:0;text-transform:uppercase;text-wrap:balance}
+.brand .meta{font-size:.85rem;opacity:.85}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{font:600 .9rem var(--body);background:transparent;color:inherit;border:0;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer;opacity:.85;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);opacity:1}
+nav.tabs button:focus-visible{outline:2px solid var(--maple);outline-offset:-2px}
+main .wrap{padding-block:20px 48px;display:flex;flex-direction:column;gap:20px}
+h2{font-family:var(--display);font-weight:800;font-size:1.5rem;text-transform:uppercase;letter-spacing:.03em;margin:0}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.sec{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;background:var(--soft)}
+th:first-child,td:first-child,.l{text-align:left}
+tr:last-child td{border-bottom:0}
+td.num-strong{font-weight:700}
+.rank{font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--lane);width:2.2em}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.75rem;font-weight:600;background:var(--soft);color:var(--muted)}
+.pill.win{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.loss{background:color-mix(in srgb,var(--pin) 15%,transparent);color:var(--pin)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input,select{font:500 .95rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 9px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--lane);outline-offset:1px}
+input.g{width:3.6em;text-align:center;padding:6px 2px;font-variant-numeric:tabular-nums}
+input.g.bad{border-color:var(--pin)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--lane)}
+.btn{font:600 .9rem var(--body);border-radius:8px;padding:9px 16px;border:1px solid var(--lane);background:var(--lane);color:var(--lane-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--lane)}
+.btn.danger{background:transparent;border-color:var(--pin);color:var(--pin)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.note{font-size:.85rem;color:var(--muted);max-width:68ch}
+.banner{border-left:4px solid var(--maple);background:var(--surface);padding:10px 14px;border-radius:0 8px 8px 0;font-size:.9rem}
+.hcpbox{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.formula{font-family:var(--display);font-size:1.25rem;font-weight:600;letter-spacing:.02em}
+.match{display:flex;flex-direction:column;gap:10px}
+.match-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.match-head b{font-family:var(--display);font-size:1.2rem;text-transform:uppercase;letter-spacing:.02em}
+.vs{color:var(--pin);font-family:var(--display);font-weight:800;padding:0 6px}
+tr.tot td{font-weight:700;background:var(--soft)}
+tr.abs td{color:var(--muted)}
+.highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
+.hs li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.hs li:last-child{border-bottom:0}
+.hs ol{list-style:none;margin:0;padding:0}
+.hs .score{font-family:var(--display);font-weight:800;font-size:1.35rem;color:var(--lane);font-variant-numeric:tabular-nums}
+.hs .who{min-width:0}
+.hs .who span{display:block;font-size:.78rem;color:var(--muted)}
+.medal{display:inline-block;width:1.4em;color:var(--maple);font-weight:700}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:.9rem;z-index:20;max-width:calc(100% - 32px)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+@media (max-width:520px){h1{font-size:1.7rem}th,td{padding:7px 7px}}
+@media (prefers-reduced-motion:no-preference){nav.tabs button{transition:background .15s}}
+nav.tabs a{font:600 .9rem var(--body);color:inherit;text-decoration:none;padding:10px 14px;opacity:.9;white-space:nowrap;border-radius:8px 8px 0 0}
+nav.tabs a:hover{background:color-mix(in srgb,var(--bg) 18%,transparent)}
+[id]{scroll-margin-top:12px}
+details summary{cursor:pointer}
+#ghStatus:empty{display:none}
+</style>
+</head><body>
+
+<header class="band">
+  <div class="wrap">
+    <div class="brand"><h1 id="lgName">Bowling League</h1><span class="meta" id="lgMeta">Loading league…</span></div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="standings" aria-selected="true">Standings</button>
+      <button role="tab" data-tab="scores" aria-selected="false">Enter Scores</button>
+      <button role="tab" data-tab="bowlers" aria-selected="false">Averages &amp; Handicaps</button>
+      <button role="tab" data-tab="highs" aria-selected="false">High Scores</button>
+      <button role="tab" data-tab="teams" aria-selected="false">Teams</button>
+      <button role="tab" data-tab="export" aria-selected="false">Print &amp; Export</button>
+      <button role="tab" data-tab="web" aria-selected="false">Website</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+  </div>
+</header>
+<main><div class="wrap" id="view"><div class="empty">Loading league…</div></div></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const DEFAULTS = {name:"Bowling League", teamsCount:8, playersPerTeam:4, weeks:30, gamesPerWeek:3,
+  hcpBasis:220, hcpPct:90, hcpMax:0, ptsPerGame:1, ptsSeries:1, absentPenalty:10, teams:[]};
+
+let db=null, canWrite=false, config=null, weeks={}, tab="standings", loaded={config:false,weeks:false};
+let entryWeek=null, draft=null, draftDirty=false, highsWeek=null, pendingConfirm=null;
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2600)}
+
+// ---------- league structure ----------
+function normalize(c){
+  c={...DEFAULTS,...c};
+  const teams=[];
+  for(let i=0;i<c.teamsCount;i++){
+    const old=(c.teams||[])[i]||{};
+    const players=[];
+    for(let j=0;j<c.playersPerTeam;j++){
+      const op=(old.players||[])[j]||{};
+      players.push({id:`t${i+1}p${j+1}`, name:op.name||`Bowler ${i+1}-${j+1}`, startAvg:Number(op.startAvg)||0});
+    }
+    teams.push({id:`t${i+1}`, name:old.name||`Team ${i+1}`, players});
+  }
+  c.teams=teams;
+  c.subs=(c.subs||[]).map(s=>({id:s.id,name:s.name||"Sub",startAvg:Number(s.startAvg)||0}));
+  return c;
+}
+function roundRobin(n, weekIdx){
+  const ids=[...Array(n)].map((_,i)=>`t${i+1}`); if(n%2) ids.push(null);
+  const m=ids.length, rounds=m-1, r=weekIdx%rounds;
+  const rot=[ids[0], ...ids.slice(1).slice(r), ...ids.slice(1).slice(0,r)];
+  const out=[]; for(let i=0;i<m/2;i++){const a=rot[i], b=rot[m-1-i]; if(a&&b) out.push({a,b});}
+  return out;
+}
+const hcpFor = avg => { if(!avg) return 0; let h=Math.floor(Math.max(0,config.hcpBasis-avg)*config.hcpPct/100); if(config.hcpMax>0) h=Math.min(h,config.hcpMax); return h; };
+
+// ---------- the whole season, computed from raw scores ----------
+function compute(){
+  const G=config.gamesPerWeek, players={}, teamOf={};
+  config.teams.forEach(t=>t.players.forEach(p=>{players[p.id]={...p,team:t.name,teamId:t.id,pins:0,games:0,hg:0,hs:0}; teamOf[p.id]=t.id;}));
+  config.subs.forEach(s=>{players[s.id]={...s,team:"Sub",teamId:null,isSub:true,pins:0,games:0,hg:0,hs:0};});
+  const teams={}; config.teams.forEach(t=>teams[t.id]={id:t.id,name:t.name,won:0,lost:0,scratch:0,hdcp:0,weeks:0});
+  const weekly={}, season={sg:[],ss:[],hg:[],hs:[],tsg:[],tss:[],thg:[],ths:[]}, results={};
+  const nums=Object.keys(weeks).map(Number).sort((a,b)=>a-b);
+  for(const w of nums){
+    const wk=weeks[w]; if(!wk) continue;
+    const entering={};
+    for(const pid in players){const p=players[pid]; const avg=p.games?Math.floor(p.pins/p.games):p.startAvg; entering[pid]={avg,hcp:hcpFor(avg)};}
+    const W={sg:[],ss:[],hg:[],hs:[],tsg:[],tss:[],thg:[],ths:[]}; weekly[w]=W; results[w]=[];
+    const line=(pid)=>{const e=(wk.games||{})[pid]||{};
+      const bowler=(!e.abs&&e.sub&&players[e.sub])?e.sub:pid; const en=entering[bowler];
+      const gs=[]; for(let g=0;g<G;g++){let v=e.abs?Math.max(0,en.avg-config.absentPenalty):(e.g||[])[g]; gs.push(v===""||v==null?null:Number(v));}
+      return {pid,bowler,abs:!!e.abs,gs,avg:en.avg,hcp:en.hcp};};
+    for(const m of (wk.matchups||[])){
+      if(!teams[m.a]||!teams[m.b]) continue;
+      const side=tid=>{const ls=config.teams.find(t=>t.id===tid).players.map(p=>line(p.id));
+        const per=[...Array(G)].map((_,g)=>ls.some(l=>l.gs[g]==null)?null:ls.reduce((s,l)=>s+l.gs[g]+l.hcp,0));
+        const scr=[...Array(G)].map((_,g)=>ls.reduce((s,l)=>s+(l.gs[g]??0),0));
+        return {ls,per,scr};};
+      const A=side(m.a), B=side(m.b); let pa=0,pb=0,complete=true;
+      for(const [X,tid,oid] of [[A,m.a,m.b],[B,m.b,m.a]]){ const tag={pid:tid,name:teams[tid].name,team:`vs ${teams[oid].name}`,week:w};
+        X.per.forEach((v,g)=>{ if(v!=null){ W.thg.push({...tag,v}); W.tsg.push({...tag,v:X.scr[g]}); } });
+        if(X.per.every(v=>v!=null)){ W.ths.push({...tag,v:X.per.reduce((s,v)=>s+v,0)}); W.tss.push({...tag,v:X.scr.reduce((s,v)=>s+v,0)}); } }
+      for(let g=0;g<G;g++){ if(A.per[g]==null||B.per[g]==null){complete=false;continue;}
+        if(A.per[g]>B.per[g]) pa+=config.ptsPerGame; else if(B.per[g]>A.per[g]) pb+=config.ptsPerGame; else {pa+=config.ptsPerGame/2;pb+=config.ptsPerGame/2;} }
+      const ta=A.per.reduce((s,v)=>s+(v??0),0), tb=B.per.reduce((s,v)=>s+(v??0),0);
+      if(complete){ if(ta>tb) pa+=config.ptsSeries; else if(tb>ta) pb+=config.ptsSeries; else {pa+=config.ptsSeries/2;pb+=config.ptsSeries/2;} }
+      const any=A.per.some(v=>v!=null)||B.per.some(v=>v!=null);
+      if(any){
+        teams[m.a].won+=pa; teams[m.a].lost+=pb; teams[m.b].won+=pb; teams[m.b].lost+=pa;
+        teams[m.a].scratch+=A.scr.reduce((s,v)=>s+v,0); teams[m.b].scratch+=B.scr.reduce((s,v)=>s+v,0);
+        teams[m.a].hdcp+=ta; teams[m.b].hdcp+=tb; teams[m.a].weeks++; teams[m.b].weeks++;
+      }
+      results[w].push({a:m.a,b:m.b,pa,pb,ta,tb,complete,any});
+    }
+    // personal stats: only real (non-absent) games
+    for(const tm of config.teams) for(const slot of tm.players){
+      const l=line(slot.id); if(l.abs) continue; const real=l.gs.filter(v=>v!=null); if(!real.length) continue;
+      const p=players[l.bowler], tag={pid:l.bowler,name:p.name,team:p.isSub?`Sub for ${tm.name}`:p.team,week:w};
+      real.forEach(v=>{W.sg.push({...tag,v}); W.hg.push({...tag,v:v+l.hcp}); p.hg=Math.max(p.hg,v);});
+      if(real.length===G){const s=real.reduce((a,b)=>a+b,0); W.ss.push({...tag,v:s}); W.hs.push({...tag,v:s+l.hcp*G}); p.hs=Math.max(p.hs,s);}
+      p.pins+=real.reduce((a,b)=>a+b,0); p.games+=real.length;
+    }
+    for(const k in W){W[k].sort((a,b)=>b.v-a.v); season[k].push(...W[k]);}
+  }
+  for(const k in season) season[k].sort((a,b)=>b.v-a.v||a.week-b.week);
+  for(const pid in players){const p=players[pid]; p.avg=p.games?Math.floor(p.pins/p.games):p.startAvg; p.hcp=hcpFor(p.avg); p.est=!p.games;}
+  return {players,teams,weekly,season,results,weeksBowled:nums.filter(w=>(results[w]||[]).some(r=>r.any))};
+}
+
+// ---------- rendering ----------
+function render(){
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
+  if(!loaded.config){ $("#view").innerHTML=`<div class="empty">Loading league…</div>`; return; }
+  if(!config){ renderSetup(); return; }
+  $("#lgName").textContent=config.name;
+  const S=compute();
+  $("#lgMeta").textContent=`${config.teamsCount} teams · ${config.playersPerTeam} per team · week ${S.weeksBowled.length} of ${config.weeks} · handicap ${config.hcpPct}% of ${config.hcpBasis}`;
+  const v=$("#view");
+  const ro = canWrite?"":`<div class="banner">You're viewing this league read-only. Only the league secretary can enter scores or change settings.</div>`;
+  if(tab==="standings") v.innerHTML=ro+standings(S);
+  else if(tab==="scores") renderEntry(S);
+  else if(tab==="bowlers") v.innerHTML=bowlers(S);
+  else if(tab==="highs") v.innerHTML=highs(S);
+  else if(tab==="teams") renderTeams();
+  else if(tab==="settings") renderSettings();
+  else if(tab==="export") renderExport(S);
+  else if(tab==="web") renderWeb();
+}
+
+function standings(S){
+  const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
+  const lead=ts[0]?.won??0;
+  const rows=ts.map((t,i)=>`<tr><td class="rank">${i+1}</td><td class="l"><b>${esc(t.name)}</b></td>
+    <td class="num-strong">${fmt(t.won)}</td><td>${fmt(t.lost)}</td><td>${t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1)+"%":"—"}</td>
+    <td class="muted">${i===0?"—":fmt(lead-t.won)}</td><td>${t.scratch.toLocaleString()}</td><td>${t.hdcp.toLocaleString()}</td></tr>`).join("");
+  const last=S.weeksBowled[S.weeksBowled.length-1];
+  const tn=id=>esc(config.teams.find(t=>t.id===id)?.name);
+  const recap=last?S.results[last].map(r=>`<tr><td class="l">${tn(r.a)} <span class="pill ${r.pa>r.pb?"win":r.pa<r.pb?"loss":""}">${fmt(r.pa)}</span></td>
+    <td>${r.ta.toLocaleString()}</td><td class="vs">vs</td><td>${r.tb.toLocaleString()}</td>
+    <td class="l"><span class="pill ${r.pb>r.pa?"win":r.pb<r.pa?"loss":""}">${fmt(r.pb)}</span> ${tn(r.b)}${r.complete?"":' <span class="pill">in progress</span>'}</td></tr>`).join(""):"";
+  return `<section class="sec"><h2>Team Standings</h2>
+   <div class="tbl"><table><thead><tr><th></th><th>Team</th><th>Won</th><th>Lost</th><th>Pct</th><th>Behind</th><th>Scratch Pins</th><th>Pins + Hdcp</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <p class="note">Each match is worth ${fmt(config.ptsPerGame)} point${config.ptsPerGame==1?"":"s"} per game plus ${fmt(config.ptsSeries)} for the higher total series, all with handicap. Ties split the points. Ties in standings break on total pins with handicap.</p></section>
+   ${last?`<section class="sec"><h2>Week ${last} Results</h2><div class="tbl"><table><thead><tr><th>Team</th><th>Series + Hdcp</th><th></th><th>Series + Hdcp</th><th>Team</th></tr></thead><tbody>${recap}</tbody></table></div></section>`
+   :`<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div>`}`;
+}
+const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
+
+function bowlers(S){
+  const ps=Object.values(S.players).sort((a,b)=>b.avg-a.avg||a.name.localeCompare(b.name));
+  return `<section class="sec"><h2>Averages &amp; Handicaps</h2>
+  <p class="note">Handicap = ${config.hcpPct}% of (${config.hcpBasis} − average), rounded down${config.hcpMax>0?`, capped at ${config.hcpMax}`:""}. The handicap shown applies to the next week bowled. Bowlers with no games yet use their starting average (marked “est”). Absent (blind) games count for the team but not for the bowler's average.</p>
+  <div class="tbl"><table><thead><tr><th>Bowler</th><th class="l">Team</th><th>Games</th><th>Pins</th><th>Average</th><th>Handicap</th><th>High Game</th><th>High Series</th></tr></thead><tbody>
+  ${ps.map(p=>`<tr><td class="l"><b>${esc(p.name)}</b></td><td class="l muted">${esc(p.team)}</td><td>${p.games}</td><td>${p.pins.toLocaleString()}</td>
+  <td class="num-strong">${p.avg||"—"}${p.est&&p.avg?' <span class="pill">est</span>':""}</td><td class="num-strong">${p.avg?p.hcp:"—"}</td><td>${p.hg||"—"}</td><td>${p.hs||"—"}</td></tr>`).join("")}
+  </tbody></table></div></section>`;
+}
+
+function topList(title,arr,showWeek){
+  const items=top3(arr);
+  return `<div class="card hs"><h3>${title}</h3>${items.length?`<ol>${items.map((x,i)=>`<li><div class="who"><span class="medal">${i+1}.</span><b>${esc(x.name)}</b><span>${esc(x.team)}${showWeek?` · week ${x.week}`:""}</span></div><div class="score">${x.v}</div></li>`).join("")}</ol>`:`<p class="muted small">No scores yet.</p>`}</div>`;
+}
+function highs(S){
+  const wks=S.weeksBowled; if(highsWeek==null||!wks.includes(highsWeek)) highsWeek=wks[wks.length-1]??null;
+  const W=highsWeek?S.weekly[highsWeek]:{sg:[],ss:[],hg:[],hs:[],tsg:[],tss:[],thg:[],ths:[]};
+  const teamCards=(X,sw)=>`${topList("Team High Game · Scratch",X.tsg,sw)}${topList("Team High Series · Scratch",X.tss,sw)}${topList("Team High Game · Handicap",X.thg,sw)}${topList("Team High Series · Handicap",X.ths,sw)}`;
+  return `<section class="sec"><h2>Season Highs</h2><div class="highs">
+   ${topList("High Game · Scratch",S.season.sg,1)}${topList("High Series · Scratch",S.season.ss,1)}
+   ${topList("High Game · Handicap",S.season.hg,1)}${topList("High Series · Handicap",S.season.hs,1)}</div>
+   <h3>Team</h3><div class="highs">${teamCards(S.season,1)}</div></section>
+   <section class="sec"><div class="row"><h2>Weekly Highs</h2>
+   <select id="hw" aria-label="Week">${wks.length?wks.map(w=>`<option value="${w}" ${w===highsWeek?"selected":""}>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</option>`).join(""):"<option>No weeks bowled</option>"}</select></div>
+   <div class="highs">${topList("High Game · Scratch",W.sg)}${topList("High Series · Scratch",W.ss)}${topList("High Game · Handicap",W.hg)}${topList("High Series · Handicap",W.hs)}</div>
+   <h3>Team</h3><div class="highs">${teamCards(W)}</div>
+   <p class="note">Each bowler or team appears only once per list, with their best score. Individual series counts only bowlers who bowled all ${config.gamesPerWeek} games, and blind scores are left out. Team highs use the team's full lineup for that game, including subs and blind scores.</p></section>`;
+}
+
+// ---------- score entry ----------
+function freshDraft(w){
+  const ex=weeks[w];
+  return ex?JSON.parse(JSON.stringify({date:ex.date||"",matchups:ex.matchups||roundRobin(config.teamsCount,w-1),games:ex.games||{}}))
+           :{date:"",matchups:roundRobin(config.teamsCount,w-1),games:{}};
+}
+function renderEntry(S){
+  if(entryWeek==null){ const last=S.weeksBowled[S.weeksBowled.length-1]||0; entryWeek=Math.min(config.weeks,last+1)||1; }
+  if(!draft||draft._w!==entryWeek){ draft=freshDraft(entryWeek); draft._w=entryWeek; draftDirty=false; }
+  const G=config.gamesPerWeek, dis=canWrite?"":"disabled";
+  const S2=entering(entryWeek);
+  const teamOpts=sel=>config.teams.map(t=>`<option value="${t.id}" ${t.id===sel?"selected":""}>${esc(t.name)}</option>`).join("");
+  const side=(tid,mi,k)=>{const t=config.teams.find(x=>x.id===tid); if(!t) return "";
+    return `<div class="tbl"><table><thead><tr><th class="l">${esc(t.name)}</th><th>Avg</th><th>Hdcp</th>${[...Array(G)].map((_,g)=>`<th>G${g+1}</th>`).join("")}<th>Series</th><th>Abs</th></tr></thead><tbody>
+    ${t.players.map(p=>{const e=draft.games[p.id]||{}; const bw=(!e.abs&&e.sub&&S2[e.sub])?e.sub:p.id; const en=S2[bw];
+      return `<tr data-p="${p.id}" class="${e.abs?"abs":""}"><td class="l">${nameCell(p,e,dis)}</td><td>${en.avg||"—"}</td><td>${en.hcp}</td>
+      ${[...Array(G)].map((_,g)=>`<td><input class="g" id="g_${p.id}_${g}" inputmode="numeric" maxlength="3" data-p="${p.id}" data-g="${g}" value="${e.abs?"":esc((e.g||[])[g]??"")}" ${e.abs?"disabled":""} ${dis} aria-label="${esc(p.name)} game ${g+1}"></td>`).join("")}
+      <td class="num-strong" id="ser_${p.id}"></td><td><input type="checkbox" id="abs_${p.id}" data-abs="${p.id}" ${e.abs?"checked":""} ${dis} aria-label="${esc(p.name)} absent"></td></tr>`;}).join("")}
+    <tr class="tot"><td class="l">Scratch + Hdcp</td><td></td><td></td>${[...Array(G)].map((_,g)=>`<td id="tt_${mi}_${k}_${g}"></td>`).join("")}<td id="tt_${mi}_${k}_s"></td><td></td></tr>
+    </tbody></table></div>`;};
+  const v=$("#view");
+  v.innerHTML=`${canWrite?"":`<div class="banner">Read-only: you can view weekly sheets but not change them.</div>`}
+  <section class="sec"><div class="row" style="justify-content:space-between">
+   <div class="row"><h2>Week</h2><select id="ew" aria-label="Week">${[...Array(config.weeks)].map((_,i)=>`<option value="${i+1}" ${i+1===entryWeek?"selected":""}>Week ${i+1}${weeks[i+1]?" ✓":""}</option>`).join("")}</select>
+   <label class="f" style="flex-direction:row;align-items:center;gap:8px">Date <input type="date" id="edate" value="${esc(draft.date)}" ${dis}></label></div>
+   <div class="row" id="saveRow"><button class="btn" id="saveWeek" ${dis}>Save week ${entryWeek}</button>${weeks[entryWeek]?`<button class="btn danger" id="clearWeek" ${dis}>Clear week</button>`:""}</div></div>
+   <p class="note">Handicaps shown are based on averages entering this week. Tick <b>Abs</b> for an absent bowler: the team gets a blind score of average − ${config.absentPenalty} each game. Match points update as you type.</p>
+  </section>
+  ${draft.matchups.map((m,mi)=>`<section class="card match"><div class="match-head">
+    <div class="row"><select data-m="${mi}" data-side="a" ${dis} aria-label="Home team">${teamOpts(m.a)}</select><span class="vs">VS</span><select data-m="${mi}" data-side="b" ${dis} aria-label="Away team">${teamOpts(m.b)}</select></div>
+    <div id="pts_${mi}" class="row small"></div></div>
+    <div class="grid2">${side(m.a,mi,"a")}${side(m.b,mi,"b")}</div></section>`).join("")}`;
+  updateTotals();
+}
+function nameCell(p,e,dis){
+  if(!config.subs.length) return esc(p.name);
+  return `<select id="sub_${p.id}" data-sub="${p.id}" ${dis} ${e.abs?"disabled":""} aria-label="Who bowled for ${esc(p.name)}" style="max-width:11em">
+    <option value="">${esc(p.name)}</option>${config.subs.map(s=>`<option value="${s.id}" ${e.sub===s.id?"selected":""}>Sub: ${esc(s.name)}</option>`).join("")}</select>`;
+}
+function entering(w){
+  // averages/handicaps entering week w = computed from weeks before w only
+  const saved=weeks; const before={}; for(const k in saved) if(Number(k)<w) before[k]=saved[k];
+  const keep=weeks; weeks=before; const S=compute(); weeks=keep;
+  const out={}; for(const pid in S.players){const p=S.players[pid]; out[pid]={avg:p.avg,hcp:p.hcp};} return out;
+}
+function updateTotals(){
+  const G=config.gamesPerWeek, en=entering(entryWeek);
+  const bw=pid=>{const e=draft.games[pid]||{}; return (!e.abs&&e.sub&&en[e.sub])?e.sub:pid;};
+  const val=(pid,g)=>{const e=draft.games[pid]||{}; if(e.abs) return Math.max(0,en[pid].avg-config.absentPenalty); const x=(e.g||[])[g]; return x===""||x==null?null:Number(x);};
+  config.teams.forEach(t=>t.players.forEach(p=>{const c=document.getElementById("ser_"+p.id); if(!c) return;
+    const gs=[...Array(G)].map((_,g)=>val(p.id,g)); c.textContent=gs.some(v=>v!=null)?gs.reduce((s,v)=>s+(v??0),0):"";}));
+  draft.matchups.forEach((m,mi)=>{
+    const tot={}; for(const k of ["a","b"]){const t=config.teams.find(x=>x.id===m[k]); if(!t) continue;
+      tot[k]=[...Array(G)].map((_,g)=>t.players.some(p=>val(p.id,g)==null)?null:t.players.reduce((s,p)=>s+val(p.id,g)+en[bw(p.id)].hcp,0));
+      tot[k].forEach((v,g)=>{const c=document.getElementById(`tt_${mi}_${k}_${g}`); if(c) c.textContent=v??"";});
+      const c=document.getElementById(`tt_${mi}_${k}_s`); if(c) c.textContent=tot[k].every(v=>v!=null)?tot[k].reduce((s,v)=>s+v,0):"";}
+    let pa=0,pb=0,done=true; for(let g=0;g<G;g++){const A=tot.a?.[g],B=tot.b?.[g]; if(A==null||B==null){done=false;continue;}
+      if(A>B)pa+=config.ptsPerGame; else if(B>A)pb+=config.ptsPerGame; else{pa+=config.ptsPerGame/2;pb+=config.ptsPerGame/2;}}
+    if(done){const A=tot.a.reduce((s,v)=>s+v,0),B=tot.b.reduce((s,v)=>s+v,0); if(A>B)pa+=config.ptsSeries; else if(B>A)pb+=config.ptsSeries; else{pa+=config.ptsSeries/2;pb+=config.ptsSeries/2;}}
+    const el=document.getElementById("pts_"+mi); if(el){const na=esc(config.teams.find(x=>x.id===m.a)?.name), nb=esc(config.teams.find(x=>x.id===m.b)?.name);
+      el.innerHTML=`<span class="pill ${pa>pb?"win":pa<pb?"loss":""}">${na} ${fmt(pa)}</span><span class="pill ${pb>pa?"win":pb<pa?"loss":""}">${nb} ${fmt(pb)}</span>${done?"":'<span class="muted">series point pending</span>'}`;}
+  });
+}
+
+// ---------- teams ----------
+function renderTeams(){
+  const dis=canWrite?"":"disabled";
+  $("#view").innerHTML=`<section class="sec"><div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2><button class="btn" id="saveTeams" ${dis}>Save teams</button></div>
+  <p class="note">Rename teams and bowlers and set each bowler's starting average (last season's or establishing average). The starting average sets the handicap until the bowler has games this season.</p>
+  <div class="grid2">${config.teams.map((t,i)=>`<div class="card sec"><label class="f">Team ${i+1}<input id="tn_${t.id}" value="${esc(t.name)}" ${dis}></label>
+    <div class="tbl" style="border:0"><table><thead><tr><th>Bowler</th><th>Starting Avg</th></tr></thead><tbody>
+    ${t.players.map(p=>`<tr><td class="l"><input id="pn_${p.id}" value="${esc(p.name)}" style="width:100%" ${dis} aria-label="Bowler name"></td><td><input id="pa_${p.id}" class="g" style="width:4.5em" inputmode="numeric" value="${p.startAvg||""}" ${dis} aria-label="Starting average"></td></tr>`).join("")}
+    </tbody></table></div></div>`).join("")}</div>
+  ${subsCard(dis)}</section>`;
+}
+function subsCard(dis){
+  const S=compute();
+  return `<div class="card sec"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Substitutes</h3><button class="btn ghost" id="addSub" ${dis}>Add sub</button></div>
+  <p class="note">Subs can bowl for any team. In Enter Scores, choose the sub from the absent bowler's name. The team uses the sub's score and handicap, and the games count toward the sub's own average and highs. Save teams after renaming subs.</p>
+  ${config.subs.length?`<div class="tbl" style="border:0"><table><thead><tr><th>Sub</th><th>Starting Avg</th><th>Games</th><th>Average</th><th></th></tr></thead><tbody>
+  ${config.subs.map(s=>{const p=S.players[s.id]; return `<tr><td class="l"><input id="sn_${s.id}" value="${esc(s.name)}" style="width:100%;min-width:8em" ${dis} aria-label="Sub name"></td>
+   <td><input id="sa_${s.id}" class="g" style="width:4.5em" inputmode="numeric" value="${s.startAvg||""}" ${dis} aria-label="Starting average"></td>
+   <td>${p.games}</td><td>${p.avg||"—"}</td><td>${p.games?'<span class="muted small">has bowled</span>':`<button class="btn danger" data-rm="${s.id}" ${dis} style="padding:5px 10px">Remove</button>`}</td></tr>`;}).join("")}
+  </tbody></table></div>`:`<p class="muted small">No subs yet. Add one to let them bowl for any team.</p>`}</div>`;
+}
+function collectTeams(){
+  const c=JSON.parse(JSON.stringify(config));
+  c.teams.forEach(tm=>{const n=$("#tn_"+tm.id); if(n) tm.name=n.value.trim()||tm.name;
+    tm.players.forEach(p=>{const a=$("#pn_"+p.id), b=$("#pa_"+p.id); if(a) p.name=a.value.trim()||p.name; if(b) p.startAvg=clamp(parseInt(b.value)||0,0,300);});});
+  c.subs.forEach(s=>{const a=$("#sn_"+s.id), b=$("#sa_"+s.id); if(a) s.name=a.value.trim()||s.name; if(b) s.startAvg=clamp(parseInt(b.value)||0,0,300);});
+  return c;
+}
+
+// ---------- settings ----------
+function settingsForm(c, isSetup){
+  const n=(id,label,val,min,max,step=1)=>`<label class="f">${label}<input id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}" ${canWrite?"":"disabled"}></label>`;
+  return `<div class="card sec"><h3>League</h3><div class="formgrid">
+    <label class="f" style="grid-column:1/-1">League name<input id="s_name" value="${esc(c.name)}" ${canWrite?"":"disabled"}></label>
+    ${n("s_teams","Number of teams",c.teamsCount,2,40)}${n("s_ppt","Players per team",c.playersPerTeam,1,10)}
+    ${n("s_weeks","Weeks in season",c.weeks,1,60)}${n("s_gpw","Games per week",c.gamesPerWeek,1,5)}</div></div>
+   <div class="card sec"><h3>Handicap</h3><div class="hcpbox">
+    ${n("s_pct","Handicap %",c.hcpPct,0,100)}${n("s_basis","Basis score",c.hcpBasis,100,300)}${n("s_max","Max handicap (0 = none)",c.hcpMax,0,300)}
+    <div class="formula" id="s_formula"></div></div>
+    <p class="note">Changing the percentage or basis recalculates every handicap, match result and standing for the whole season from the raw scores.</p></div>
+   <div class="card sec"><h3>Points</h3><div class="formgrid">
+    ${n("s_ppg","Points per game won",c.ptsPerGame,0,10,0.5)}${n("s_pser","Points for series",c.ptsSeries,0,10,0.5)}${n("s_abs","Absent: avg minus",c.absentPenalty,0,100)}</div></div>
+   <div class="row"><button class="btn" id="saveSettings" ${canWrite?"":"disabled"}>${isSetup?"Create league":"Save settings"}</button></div>`;
+}
+function renderSettings(){ $("#view").innerHTML=`<section class="sec"><h2>Settings</h2>${settingsForm(config,false)}</section>`; formula(); }
+function renderSetup(){
+  $("#lgMeta").textContent="New league";
+  $("#view").innerHTML=canWrite?`<section class="sec"><h2>Set up your league</h2><p class="note">Pick the basics. You can rename teams and bowlers next, and change any of this later in Settings.</p>${settingsForm(DEFAULTS,true)}</section>
+    <section class="sec"><h2>Or bring in an existing league</h2><div class="card sec"><p class="note">Restore a backup file downloaded from the Claude version (Print &amp; Export, Download backup) or from this app.</p>
+    <div class="row" id="restoreRow"><label class="btn ghost" style="display:inline-flex;align-items:center">Restore from backup file<input type="file" id="restoreFile" accept=".json,application/json" style="position:absolute;opacity:0;width:1px;height:1px"></label>${ghReady()?'<button class="btn ghost" id="ghRestore">Restore from website backup</button>':""}</div></div></section>`
+    :`<div class="card empty">This league hasn't been set up yet. The league secretary will add teams and scores soon.</div>`;
+  formula();
+}
+function formula(){const f=$("#s_formula"); if(!f) return; const p=+$("#s_pct").value||0,b=+$("#s_basis").value||0;
+  const ex=180, h=Math.floor(Math.max(0,b-ex)*p/100); f.textContent=`${p}% × (${b} − avg) · a ${ex} bowler gets ${h}`;}
+function readSettings(){
+  const g=id=>Number($("#"+id).value);
+  const c={...(config||DEFAULTS), name:$("#s_name").value.trim()||"Bowling League", teamsCount:clamp(g("s_teams"),2,40), playersPerTeam:clamp(g("s_ppt"),1,10),
+    weeks:clamp(g("s_weeks"),1,60), gamesPerWeek:clamp(g("s_gpw"),1,5), hcpPct:clamp(g("s_pct"),0,100), hcpBasis:clamp(g("s_basis"),100,300),
+    hcpMax:clamp(g("s_max"),0,300), ptsPerGame:clamp(g("s_ppg"),0,10), ptsSeries:clamp(g("s_pser"),0,10), absentPenalty:clamp(g("s_abs"),0,100)};
+  return normalize(c);
+}
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number.isFinite(v)?v:a));
+
+// ---------- print & export ----------
+function top3(arr){ const seen=new Set(), items=[]; for(const x of arr){ if(seen.has(x.pid)) continue; seen.add(x.pid); items.push(x); if(items.length===3) break; } return items; }
+let recapWeek=null, pendingRestore=null;
+const RECAP_CSS=`.rc{background:#fff;color:#111;font:12px/1.35 "Public Sans",Arial,sans-serif;padding:20px;min-width:660px}
+.rc h1{font:800 24px "Big Shoulders Display","Arial Narrow",Arial,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0}
+.rc .sub{color:#555;margin:2px 0 0}
+.rc h2{font:700 12px Arial,sans-serif;text-transform:uppercase;letter-spacing:.07em;margin:16px 0 6px;border-bottom:2px solid #111;padding-bottom:2px;color:#111}
+.rc table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.rc th,.rc td{border:1px solid #bbb;padding:3px 6px;text-align:right;color:#111;white-space:nowrap}
+.rc th{background:#eee;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.rc .l{text-align:left}
+.rc tr.team td{background:#f2f2f2;font-weight:700;text-align:left}
+.rc .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px}
+.rc .hl b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.rc .hl ol{margin:0;padding-left:16px}
+.rc .hl li{display:flex;justify-content:space-between;gap:6px}
+.rc .hl li span{color:#555}
+.rc .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}`;
+document.head.appendChild(Object.assign(document.createElement("style"),{textContent:RECAP_CSS+"\nlabel.btn{position:relative}label.btn:focus-within{outline:2px solid var(--lane);outline-offset:1px}"}));
+function weekLines(w){
+  const wk=weeks[w]; const out={}; if(!wk) return out;
+  for(const t of config.teams) for(const p of t.players){ const e=(wk.games||{})[p.id]; if(!e) continue;
+    if(e.abs) out[p.id]={abs:true}; else out[(e.sub&&config.subs.some(s=>s.id===e.sub))?e.sub:p.id]={g:e.g||[], forTeam:t.name}; }
+  return out;
+}
+function recapBody(S,w){
+  const G=config.gamesPerWeek, wk=weeks[w]||{}, tn=id=>esc(config.teams.find(t=>t.id===id)?.name);
+  const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
+  const lines=weekLines(w);
+  const gcells=pid=>{const l=lines[pid]; if(!l) return `${"<td></td>".repeat(G)}<td></td>`;
+    if(l.abs) return `<td colspan="${G}" class="l">absent</td><td></td>`;
+    const gs=[...Array(G)].map((_,g)=>l.g[g]); const real=gs.filter(v=>v!=null);
+    return gs.map(v=>`<td>${v??""}</td>`).join("")+`<td><b>${real.length?real.reduce((a,b)=>a+b,0):""}</b></td>`;};
+  const prow=(p,name)=>{const x=S.players[p.id]; return `<tr><td class="l">${name}</td>${gcells(p.id)}<td>${x.games}</td><td><b>${x.avg||""}</b></td><td>${x.avg?x.hcp:""}</td></tr>`;};
+  const bowled=config.subs.filter(s=>S.players[s.id].games>0);
+  const hl=(title,arr,season)=>`<div class="hl"><b>${title}</b><ol>${top3(arr).map(x=>`<li><span style="color:#111">${esc(x.name)}${season?` <span>(wk ${x.week})</span>`:""}</span><strong>${x.v}</strong></li>`).join("")||"<li><span>—</span></li>"}</ol></div>`;
+  const cats=(X,season)=>`${hl("High Game Scratch",X.sg,season)}${hl("High Series Scratch",X.ss,season)}${hl("High Game Hdcp",X.hg,season)}${hl("High Series Hdcp",X.hs,season)}
+    ${hl("Team Game Scratch",X.tsg,season)}${hl("Team Series Scratch",X.tss,season)}${hl("Team Game Hdcp",X.thg,season)}${hl("Team Series Hdcp",X.ths,season)}`;
+  // standings as of this week
+  return `<h1>${esc(config.name)}</h1>
+  <p class="sub">Week ${w} of ${config.weeks}${wk.date?" · "+esc(wk.date):""} · Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?`, max ${config.hcpMax}`:""}</p>
+  <div class="two"><div><h2>Standings</h2><table><thead><tr><th></th><th class="l">Team</th><th>Won</th><th>Lost</th><th>Scratch</th><th>+Hdcp</th></tr></thead><tbody>
+  ${ts.map((t,i)=>`<tr><td>${i+1}</td><td class="l">${esc(t.name)}</td><td><b>${fmt(t.won)}</b></td><td>${fmt(t.lost)}</td><td>${t.scratch.toLocaleString()}</td><td>${t.hdcp.toLocaleString()}</td></tr>`).join("")}</tbody></table></div>
+  <div><h2>Week ${w} Results</h2><table><thead><tr><th class="l">Team</th><th>Pts</th><th>Series+Hdcp</th><th class="l">Opponent</th><th>Pts</th><th>Series+Hdcp</th></tr></thead><tbody>
+  ${(S.results[w]||[]).map(r=>`<tr><td class="l">${tn(r.a)}</td><td><b>${fmt(r.pa)}</b></td><td>${r.ta.toLocaleString()}</td><td class="l">${tn(r.b)}</td><td><b>${fmt(r.pb)}</b></td><td>${r.tb.toLocaleString()}</td></tr>`).join("")}</tbody></table></div></div>
+  <h2>Bowlers</h2><table><thead><tr><th class="l">Bowler</th>${[...Array(G)].map((_,g)=>`<th>G${g+1}</th>`).join("")}<th>Series</th><th>Games</th><th>Avg</th><th>Next Hdcp</th></tr></thead><tbody>
+  ${config.teams.map(t=>`<tr class="team"><td colspan="${G+5}">${esc(t.name)}</td></tr>${t.players.map(p=>prow(p,esc(p.name))).join("")}`).join("")}
+  ${bowled.length?`<tr class="team"><td colspan="${G+5}">Subs</td></tr>${bowled.map(s=>prow(s,esc(s.name)+(lines[s.id]?` <span style="color:#555">(for ${esc(lines[s.id].forTeam)})</span>`:""))).join("")}`:""}
+  </tbody></table>
+  <h2>Week ${w} Highs</h2><div class="cols">${cats(S.weekly[w]||{sg:[],ss:[],hg:[],hs:[],tsg:[],tss:[],thg:[],ths:[]},false)}</div>
+  <h2>Season Highs</h2><div class="cols">${cats(S.season,true)}</div>`;
+}
+function computeThrough(w){ const keep=weeks, sub={}; for(const k in keep) if(Number(k)<=w) sub[k]=keep[k]; weeks=sub; const S=compute(); weeks=keep; return S; }
+function renderExport(S){
+  const wks=S.weeksBowled; if(recapWeek==null||!wks.includes(recapWeek)) recapWeek=wks[wks.length-1]??null;
+  const dis=canWrite?"":"disabled";
+  $("#view").innerHTML=`<section class="sec"><h2>Print Weekly Recap</h2>
+   <p class="note">Download the recap sheet, open the file in your browser and click Print. It has the standings, the week's results, every bowler's scores, average and handicap, and the weekly and season highs.</p>
+   <div class="row"><select id="rw" aria-label="Recap week">${wks.length?wks.map(w=>`<option value="${w}" ${w===recapWeek?"selected":""}>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</option>`).join(""):"<option>No weeks bowled yet</option>"}</select>
+   <button class="btn" id="dlRecap" ${wks.length?"":"disabled"}>Download recap to print</button></div>
+   ${wks.length?`<div class="tbl"><div class="rc" id="recapPrev"></div></div>`:`<div class="card empty">Enter a week of scores to make a recap sheet.</div>`}</section>
+  <section class="sec"><h2>Export Data</h2><div class="grid2">
+   <div class="card sec"><h3>Spreadsheets (CSV)</h3><p class="note">Open in Excel, Google Sheets or Numbers.</p>
+    <div class="row"><button class="btn ghost" id="dlStand">Standings</button><button class="btn ghost" id="dlAvg">Averages</button><button class="btn ghost" id="dlScores">Every score</button></div></div>
+   <div class="card sec"><h3>Full backup</h3><p class="note">One file with all settings, teams, subs and scores. Keep a copy each week. Restoring replaces everything in this league with the backup.</p>
+    <div class="row" id="restoreRow"><button class="btn ghost" id="dlBackup">Download backup</button>
+    <label class="btn ghost" style="display:inline-flex;align-items:center" ${canWrite?"":'aria-disabled="true"'}>Restore from backup<input type="file" id="restoreFile" accept=".json,application/json" ${dis} style="position:absolute;opacity:0;width:1px;height:1px"></label></div></div>
+  </div></section>`;
+  if(wks.length) $("#recapPrev").innerHTML=recapBody(computeThrough(recapWeek),recapWeek);
+}
+const slug=()=>(config.name||"league").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"league";
+const csv=rows=>rows.map(r=>r.map(v=>{v=v==null?"":String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;}).join(",")).join("\r\n")+"\r\n";
+function dl(filename,data){
+  const type=filename.endsWith(".csv")?"text/csv":filename.endsWith(".json")?"application/json":"text/html";
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:type+";charset=utf-8"})); a.download=filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},2000); toast("Downloaded "+filename);
+}
+function exportCsv(kind){
+  const S=compute(), G=config.gamesPerWeek;
+  if(kind==="stand"){ const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
+    return dl(`${slug()}-standings.csv`,csv([["Rank","Team","Won","Lost","Pct","Scratch Pins","Pins + Hdcp"],...ts.map((t,i)=>[i+1,t.name,t.won,t.lost,t.won+t.lost?(t.won/(t.won+t.lost)).toFixed(3):"",t.scratch,t.hdcp])])); }
+  if(kind==="avg"){ const ps=Object.values(S.players).sort((a,b)=>b.avg-a.avg);
+    return dl(`${slug()}-averages.csv`,csv([["Bowler","Team","Games","Pins","Average","Handicap","High Game","High Series"],...ps.map(p=>[p.name,p.team,p.games,p.pins,p.avg||"",p.avg?p.hcp:"",p.hg||"",p.hs||""])])); }
+  const rows=[["Week","Date","Team","Roster Bowler","Bowled By","Absent","Handicap",...[...Array(G)].map((_,g)=>"Game "+(g+1)),"Series"]];
+  for(const w of Object.keys(weeks).map(Number).sort((a,b)=>a-b)){ const wk=weeks[w], en=entering(w);
+    for(const t of config.teams) for(const p of t.players){ const e=(wk.games||{})[p.id]; if(!e) continue;
+      const sub=!e.abs&&e.sub?config.subs.find(s=>s.id===e.sub):null; const by=sub||p; const h=en[by.id]?.hcp??"";
+      const gs=[...Array(G)].map((_,g)=>e.abs?"":(e.g||[])[g]??""); const real=gs.filter(v=>v!=="");
+      rows.push([w,wk.date||"",t.name,p.name,e.abs?"":by.name+(sub?" (sub)":""),e.abs?"yes":"",h,...gs,real.length?real.reduce((a,b)=>a+Number(b),0):""]); } }
+  return dl(`${slug()}-all-scores.csv`,csv(rows));
+}
+function recapDoc(w){
+  const S=computeThrough(w);
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(config.name)} - Week ${w} Recap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Public+Sans:wght@400;700&display=swap">
+<style>body{margin:0;background:#fff}${RECAP_CSS}.rc{min-width:0}.bar{padding:12px 20px;background:#1d5aa0}.bar button{font:700 15px Arial,sans-serif;padding:8px 18px;border:0;border-radius:6px;background:#fff;color:#1d5aa0;cursor:pointer}
+@media print{.bar{display:none}.rc{padding:0}@page{margin:10mm}h2{break-after:avoid}tr{break-inside:avoid}}</style></head>
+<body><div class="bar"><button onclick="window.print()">Print this recap</button></div><div class="rc">${recapBody(S,w)}</div></body></html>`;
+}
+function exportRecap(){ return dl(`${slug()}-week-${recapWeek}-recap.html`,recapDoc(recapWeek)); }
+function backupData(){ return JSON.stringify({app:"League Secretary",format:1,exportedAt:new Date().toISOString(),config,weeks:Object.values(weeks)},null,1); }
+async function doRestore(){
+  const b=pendingRestore; pendingRestore=null;
+  try{
+    await db.doc("league/config").set(normalize(b.config));
+    const keep=new Set();
+    for(const w of b.weeks){ const id="w"+String(w.week).padStart(2,"0"); keep.add(id); await db.doc("weeks/"+id).set(w); }
+    for(const k of Object.keys(weeks)){ const id="w"+String(k).padStart(2,"0"); if(!keep.has(id)) await db.doc("weeks/"+id).delete(); }
+    draft=null; toast(`Restored ${b.weeks.length} week${b.weeks.length===1?"":"s"} from backup.`);
+  }catch(_){ toast("Restore stopped partway. Try again with the same backup file."); }
+  render();
+}
+
+// ---------- league website (GitHub Pages) ----------
+const GH_KEY="leagueSecretary.github.v1";
+function ghSettings(){ try{ return JSON.parse(localStorage.getItem(GH_KEY))||{}; }catch(_){ return {}; } }
+function ghStore(s){ try{ localStorage.setItem(GH_KEY,JSON.stringify(s)); }catch(_){ toast("Couldn't save the website settings on this device."); } }
+const ghReady=()=>{ const s=ghSettings(); return !!(s.owner&&s.repo&&s.token); };
+function siteUrl(s=ghSettings()){ if(!s.owner||!s.repo) return ""; const o=s.owner.toLowerCase(); return s.repo.toLowerCase()===o+".github.io"?`https://${o}.github.io/`:`https://${o}.github.io/${s.repo}/`; }
+const b64=str=>{ const bytes=new TextEncoder().encode(str); let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000)); return btoa(bin); };
+const unb64=c=>new TextDecoder().decode(Uint8Array.from(atob(c.replace(/\s/g,"")),ch=>ch.charCodeAt(0)));
+async function gh(path,opts={},s=ghSettings()){
+  return fetch(`https://api.github.com/repos/${encodeURIComponent(s.owner)}/${encodeURIComponent(s.repo)}${path}`,{...opts,cache:"no-store",
+    headers:{Authorization:`Bearer ${s.token}`,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(opts.body?{"Content-Type":"application/json"}:{})}});
+}
+function ghErr(status){
+  if(status===401) return "GitHub didn't accept the token. Check that it was copied in full and hasn't expired.";
+  if(status===404) return "Repository not found. Check the username and repository name, and that the token was given access to this repository.";
+  if(status===403) return "The token can't write to this repository. Edit the token and set Contents to “Read and write”.";
+  if(status===409||status===422) return "GitHub refused the update. Wait a few seconds and publish again.";
+  return "Couldn't reach GitHub. Check the internet connection and try again.";
+}
+async function ghPut(file,b64content,msg,branch){
+  let sha; const g=await gh(`/contents/${file}?ref=${encodeURIComponent(branch)}`);
+  if(g.ok) sha=(await g.json()).sha; else if(g.status!==404) throw new Error(ghErr(g.status));
+  const r=await gh(`/contents/${file}`,{method:"PUT",body:JSON.stringify({message:msg,content:b64content,branch,...(sha?{sha}:{})})});
+  if(!r.ok) throw new Error(ghErr(r.status));
+}
+async function ghExists(file,branch){ const g=await gh(`/contents/${file}?ref=${encodeURIComponent(branch)}`); return g.ok; }
+function iconPng(size){
+  const c=document.createElement("canvas"); c.width=c.height=size; const x=c.getContext("2d"), u=size/100;
+  x.fillStyle="#1d5aa0"; x.fillRect(0,0,size,size);
+  x.fillStyle="#ffffff"; x.beginPath(); x.arc(50*u,52*u,30*u,0,Math.PI*2); x.fill();
+  x.fillStyle="#1d5aa0"; for(const [hx,hy] of [[40,40],[52,36],[47,50]]){ x.beginPath(); x.arc(hx*u,hy*u,4.6*u,0,Math.PI*2); x.fill(); }
+  return c.toDataURL("image/png").split(",")[1];
+}
+function setWebStatus(msg,bad){ const el=$("#ghStatus"); if(el){ el.textContent=msg; el.style.color=bad?"var(--pin)":"var(--muted)"; } }
+async function ghTest(s){
+  const r=await gh("",{},s); if(!r.ok) throw new Error(ghErr(r.status));
+  const j=await r.json(); if(j.permissions&&!j.permissions.push) throw new Error(ghErr(403));
+  return j.default_branch||"main";
+}
+async function ghSaveSettings(){
+  const s={...ghSettings(), owner:$("#ghOwner").value.trim().replace(/^@/,""), repo:$("#ghRepo").value.trim(), token:$("#ghToken").value.trim()||ghSettings().token};
+  if(!s.owner||!s.repo||!s.token) return setWebStatus("Fill in your GitHub username, repository name and token.",true);
+  setWebStatus("Checking with GitHub…");
+  try{ s.branch=await ghTest(s); ghStore(s); toast("Connected to GitHub."); render(); }
+  catch(e){ setWebStatus(e.message,true); }
+}
+let publishing=false;
+async function ghPublish(){
+  if(publishing) return; if(!config) return toast("Set up the league first.");
+  const s=ghSettings(); if(!ghReady()) return toast("Connect to GitHub first.");
+  publishing=true; const btn=$("#ghPublish"); if(btn) btn.disabled=true;
+  try{
+    const br=s.branch||"main", stamp=new Date().toLocaleString(), S=compute(), last=S.weeksBowled[S.weeksBowled.length-1];
+    setWebStatus("Publishing standings page…"); await ghPut("index.html",b64(publicPage()),`Update standings ${stamp}`,br);
+    if(last){ setWebStatus("Publishing printable recap…"); await ghPut("recap.html",b64(recapDoc(last)),`Week ${last} recap`,br); }
+    setWebStatus("Saving online backup…"); await ghPut("league-backup.json",b64(backupData()),`Backup ${stamp}`,br);
+    if(!s.iconsDone){ setWebStatus("Adding home-screen icon…");
+      const man={name:"League Secretary",short_name:"League",start_url:"app.html",scope:"./",display:"standalone",background_color:"#f3f5f7",theme_color:"#1d5aa0",
+        icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
+      if(!await ghExists("manifest.webmanifest",br)) await ghPut("manifest.webmanifest",b64(JSON.stringify(man,null,1)),"Home-screen app settings",br);
+      if(!await ghExists("icon-192.png",br)) await ghPut("icon-192.png",iconPng(192),"App icon",br);
+      if(!await ghExists("icon-512.png",br)) await ghPut("icon-512.png",iconPng(512),"App icon",br);
+      s.iconsDone=true; }
+    s.lastPublished=new Date().toISOString(); ghStore(s);
+    toast("Published. The website updates in about a minute."); render();
+  }catch(e){ setWebStatus(e.message||"Publishing stopped. Try again.",true); }
+  finally{ publishing=false; const b=$("#ghPublish"); if(b) b.disabled=false; }
+}
+async function ghRestore(){
+  if(!ghReady()) return toast("Connect to GitHub first.");
+  setWebStatus("Downloading backup from your website…");
+  try{ const s=ghSettings(); const r=await gh(`/contents/league-backup.json?ref=${encodeURIComponent(s.branch||"main")}`);
+    if(r.status===404) return setWebStatus("No online backup yet. It's saved each time you publish.",true);
+    if(!r.ok) throw new Error(ghErr(r.status));
+    const b=JSON.parse(unb64((await r.json()).content));
+    if(!b||!b.config||!Array.isArray(b.weeks)) throw new Error("The online backup couldn't be read.");
+    askRestore(b); setWebStatus("");
+  }catch(e){ setWebStatus(e.message,true); }
+}
+function askRestore(b){
+  pendingRestore=b; const when=b.exportedAt?new Date(b.exportedAt).toLocaleString():"unknown date";
+  const row=$("#restoreRow"); if(!row) return;
+  row.innerHTML=`<span class="confirm">Replace all league data on this device with “${esc(b.config.name||"League")}” from ${esc(when)} (${b.weeks.length} week${b.weeks.length===1?"":"s"})? <button class="btn danger" id="restoreYes">Replace</button><button class="btn ghost" id="restoreNo">Cancel</button></span>`;
+}
+function highsStatic(S,last){
+  const ind=(X,sw)=>`${topList("High Game · Scratch",X.sg,sw)}${topList("High Series · Scratch",X.ss,sw)}${topList("High Game · Handicap",X.hg,sw)}${topList("High Series · Handicap",X.hs,sw)}`;
+  const tm=(X,sw)=>`${topList("Team High Game · Scratch",X.tsg,sw)}${topList("Team High Series · Scratch",X.tss,sw)}${topList("Team High Game · Handicap",X.thg,sw)}${topList("Team High Series · Handicap",X.ths,sw)}`;
+  return `<section class="sec" id="highs"><h2>Season Highs</h2><h3>Individual</h3><div class="highs">${ind(S.season,1)}</div><h3>Team</h3><div class="highs">${tm(S.season,1)}</div></section>
+  ${last?`<section class="sec"><h2>Week ${last} Highs</h2><h3>Individual</h3><div class="highs">${ind(S.weekly[last])}</div><h3>Team</h3><div class="highs">${tm(S.weekly[last])}</div>
+  <p class="note">Each bowler or team appears once per list. Individual series counts only bowlers who bowled every game; blind scores are left out.</p></section>`:""}`;
+}
+function publicPage(){
+  const S=compute(), last=S.weeksBowled[S.weeksBowled.length-1];
+  const css=document.getElementById("appcss").textContent;
+  const meta=`${config.teamsCount} teams · week ${S.weeksBowled.length} of ${config.weeks} · handicap ${config.hcpPct}% of ${config.hcpBasis}`;
+  const teamsHtml=`<section class="sec" id="teams"><h2>Teams</h2><div class="grid2">${config.teams.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><table><tbody>${t.players.map(p=>{const x=S.players[p.id]; return `<tr><td class="l">${esc(p.name)}</td><td>${x.avg?`avg ${x.avg} · hdcp ${x.hcp}`:""}</td></tr>`;}).join("")}</tbody></table></div>`).join("")}</div></section>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>${esc(config.name)}</title><meta name="theme-color" content="#1d5aa0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>${css}</style></head><body>
+<header class="band"><div class="wrap"><div class="brand"><h1>${esc(config.name)}</h1><span class="meta">${esc(meta)}</span></div>
+<nav class="tabs"><a href="#standings">Standings</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a>${last?'<a href="recap.html">Printable recap</a>':""}</nav></div></header>
+<main><div class="wrap"><div id="standings"></div>${standings(S)}<div id="averages"></div>${bowlers(S)}${highsStatic(S,last)}${teamsHtml}
+<p class="note">Updated ${esc(new Date().toLocaleString([], {dateStyle:"medium",timeStyle:"short"}))}.</p></div></main></body></html>`;
+}
+function renderWeb(){
+  const s=ghSettings(), url=siteUrl(s), ready=ghReady();
+  const lp=s.lastPublished?new Date(s.lastPublished).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"never";
+  $("#view").innerHTML=`<section class="sec"><h2>League Website</h2>
+  ${ready?`<div class="card sec"><h3>Your website</h3><p class="formula" style="word-break:break-all;user-select:all">${esc(url)}</p>
+    <p class="note">Share this address with your bowlers. They can see standings, averages and high scores without signing in to anything. Last published: <b>${esc(lp)}</b>.</p>
+    <div class="row"><button class="btn" id="ghPublish">Publish to website</button><a class="btn ghost" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none">Open website</a></div>
+    <p class="note">Publishing also saves an online backup of the whole league. Publish after you save each week.</p></div>`
+   :`<div class="banner">Connect your GitHub account below to publish standings for your bowlers. Follow the setup steps once.</div>`}
+  <p id="ghStatus" class="note" role="status"></p>
+  <div class="grid2">
+   <div class="card sec"><h3>GitHub connection</h3><div class="formgrid">
+    <label class="f">GitHub username<input id="ghOwner" autocomplete="off" autocapitalize="off" value="${esc(s.owner||"")}"></label>
+    <label class="f">Repository name<input id="ghRepo" autocomplete="off" autocapitalize="off" value="${esc(s.repo||"league")}"></label>
+    <label class="f" style="grid-column:1/-1">Access token<input id="ghToken" type="password" autocomplete="off" placeholder="${s.token?"Saved. Paste a new one to replace it.":"github_pat_…"}"></label></div>
+    <div class="row"><button class="btn ${ready?"ghost":""}" id="ghSave">${ready?"Update connection":"Connect"}</button>${ready?'<button class="btn danger" id="ghForget">Forget token</button>':""}</div>
+    <p class="note">The token is stored only on this device and can only change this one repository.</p></div>
+   <div class="card sec"><h3>Backups</h3><p class="note">Bring your league over from Claude, or recover it on a new device.</p>
+    <div class="row" id="restoreRow"><button class="btn ghost" id="ghRestore" ${ready?"":"disabled"}>Restore from website backup</button>
+    <label class="btn ghost" style="display:inline-flex;align-items:center">Restore from backup file<input type="file" id="restoreFile" accept=".json,application/json" style="position:absolute;opacity:0;width:1px;height:1px"></label>
+    ${config?'<button class="btn ghost" id="dlBackup">Download backup file</button>':""}</div></div>
+  </div>
+  <details class="card"><summary><b>One-time setup steps</b></summary><ol class="note" style="max-width:none;padding-left:20px;display:flex;flex-direction:column;gap:8px">
+   <li>Create a free account at <b>github.com/signup</b>.</li>
+   <li>Tap <b>+</b> then <b>New repository</b>. Name it <b>league</b>, choose <b>Public</b>, tick <b>Add a README file</b>, and tap <b>Create repository</b>.</li>
+   <li>In the repository, tap <b>Add file</b> then <b>Upload files</b>, choose <b>app.html</b>, and tap <b>Commit changes</b>.</li>
+   <li>Open the repository's <b>Settings</b>, then <b>Pages</b>. Under Branch choose <b>main</b> and <b>/ (root)</b>, then <b>Save</b>.</li>
+   <li>Make a token: your profile picture, <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>. Set expiration to 1 year, choose <b>Only select repositories</b> and pick <b>league</b>, then under Permissions set <b>Contents</b> to <b>Read and write</b>. Generate it and copy the token.</li>
+   <li>On your tablet, open <b>https://YOUR-USERNAME.github.io/league/app.html</b> in Chrome, then menu <b>⋮</b> and <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+   <li>In the app, open this <b>Website</b> tab, enter your username, <b>league</b> and the token, and tap <b>Connect</b>. Then restore your Claude backup file and tap <b>Publish to website</b>.</li>
+  </ol></details></section>`;
+}
+
+// ---------- writes ----------
+async function saveConfig(c,msg){
+  if(!db) return toast("Saving isn't available here.");
+  try{ await db.doc("league/config").set(c); toast(msg); }
+  catch(e){ toast("Couldn't save. You may not have edit access, or the connection dropped. Try again."); }
+}
+async function saveWeek(){
+  for(const inp of document.querySelectorAll("input.g.bad")){ inp.focus(); return toast("Scores must be whole numbers from 0 to 300."); }
+  const games={}; for(const pid in draft.games){const e=draft.games[pid]; if(e.abs||e.sub||(e.g||[]).some(v=>v!==""&&v!=null)) games[pid]={abs:!!e.abs,sub:(!e.abs&&e.sub)||null,g:(e.g||[]).map(v=>v===""||v==null?null:Number(v))};}
+  const body={week:entryWeek,date:draft.date||"",matchups:draft.matchups,games,updatedAt:new Date().toISOString()};
+  try{ await db.doc("weeks/w"+String(entryWeek).padStart(2,"0")).set(body); draftDirty=false; toast(`Week ${entryWeek} saved.`); }
+  catch(e){ toast("Couldn't save the week. You may not have edit access, or the connection dropped. Try again."); }
+}
+
+// ---------- events ----------
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]"); if(!b) return; tab=b.dataset.tab; render();});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.matches("input.g[data-p]")){ const v=t.value.trim(); const ok=v===""||(/^\d{1,3}$/.test(v)&&+v<=300); t.classList.toggle("bad",!ok);
+    const e2=draft.games[t.dataset.p]||(draft.games[t.dataset.p]={g:[]}); e2.g=e2.g||[]; e2.g[+t.dataset.g]=ok&&v!==""?+v:null; draftDirty=true; updateTotals(); }
+  else if(t.id==="edate"){ draft.date=t.value; draftDirty=true; }
+  else if(t.id==="s_pct"||t.id==="s_basis") formula();
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="ew"){ entryWeek=+t.value; draft=null; render(); }
+  else if(t.id==="hw"){ highsWeek=+t.value; render(); }
+  else if(t.id==="rw"){ recapWeek=+t.value; render(); }
+  else if(t.id==="restoreFile"&&t.files?.[0]){
+    t.files[0].text().then(txt=>{ let b; try{ b=JSON.parse(txt); }catch(_){ b=null; }
+      if(!b||!b.config||!Array.isArray(b.config.teams)||!Array.isArray(b.weeks)) return toast("That file isn't a League Secretary backup.");
+      askRestore(b); t.value="";
+    }); }
+  else if(t.dataset.abs){ const e2=draft.games[t.dataset.abs]||(draft.games[t.dataset.abs]={g:[]}); e2.abs=t.checked; if(t.checked) e2.sub=null; draftDirty=true; render(); }
+  else if(t.dataset.sub!==undefined){ const e2=draft.games[t.dataset.sub]||(draft.games[t.dataset.sub]={g:[]}); e2.sub=t.value||null; draftDirty=true; render(); }
+  else if(t.dataset.m){ draft.matchups[+t.dataset.m][t.dataset.side]=t.value; draftDirty=true; render(); }
+});
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  if(t.id==="saveWeek") saveWeek();
+  else if(t.id==="clearWeek"){ $("#saveRow").innerHTML=`<span class="confirm">Delete all scores for week ${entryWeek}? <button class="btn danger" id="clearYes">Delete</button><button class="btn ghost" id="clearNo">Keep</button></span>`; }
+  else if(t.id==="clearNo") render();
+  else if(t.id==="clearYes"){ try{ await db.doc("weeks/w"+String(entryWeek).padStart(2,"0")).delete(); draft=null; toast(`Week ${entryWeek} cleared.`);}catch(_){toast("Couldn't clear the week. Try again.");} }
+  else if(t.id==="saveSettings"){ const isNew=!config; const c=readSettings(); if(isNew) tab="teams"; await saveConfig(c,isNew?"League created.":"Settings saved."); }
+  else if(t.id==="dlRecap") exportRecap();
+  else if(t.id==="dlStand") exportCsv("stand");
+  else if(t.id==="dlAvg") exportCsv("avg");
+  else if(t.id==="dlScores") exportCsv("scores");
+  else if(t.id==="dlBackup") dl(`${slug()}-backup-${new Date().toISOString().slice(0,10)}.json`,backupData());
+  else if(t.id==="restoreYes"&&pendingRestore) doRestore();
+  else if(t.id==="restoreNo"){ pendingRestore=null; render(); }
+  else if(t.id==="ghSave") ghSaveSettings();
+  else if(t.id==="ghPublish") ghPublish();
+  else if(t.id==="ghRestore") ghRestore();
+  else if(t.id==="ghForget"){ const x=ghSettings(); delete x.token; ghStore(x); toast("Token removed from this device."); render(); }
+  else if(t.id==="saveTeams"){ await saveConfig(collectTeams(),"Teams saved."); }
+  else if(t.id==="addSub"){ const c=collectTeams(); c.subs.push({id:"s"+Date.now().toString(36),name:`Sub ${c.subs.length+1}`,startAvg:0}); await saveConfig(c,"Sub added. Rename them below."); }
+  else if(t.dataset.rm){ const c=collectTeams(); c.subs=c.subs.filter(s=>s.id!==t.dataset.rm); await saveConfig(c,"Sub removed."); }
+});
+
+// ---------- data (saved on this device) ----------
+const LS="leagueSecretary.data.v1";
+function loadStore(){ try{ const x=JSON.parse(localStorage.getItem(LS)); if(x&&typeof x==="object") return {config:x.config||null,weeks:x.weeks||{}}; }catch(_){} return {config:null,weeks:{}}; }
+let store=loadStore(); const listeners={doc:null,col:null};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const docSnap=()=>({exists:!!store.config,data:()=>clone(store.config),metadata:{fromCache:false}});
+const colSnap=()=>({docs:Object.values(store.weeks).map(w=>({data:()=>clone(w)}))});
+function notify(){ setTimeout(()=>{ listeners.doc&&listeners.doc(docSnap()); listeners.col&&listeners.col(colSnap()); },0); }
+function persist(){ try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(e){ toast("Couldn't save on this device. Download a backup now."); throw e; } }
+const local={
+  doc(path){ const [c,id]=path.split("/"); return {
+    async set(d){ if(c==="league") store.config=clone(d); else store.weeks[id]=clone(d); persist(); notify(); },
+    async delete(){ if(c==="league") store.config=null; else delete store.weeks[id]; persist(); notify(); },
+    onSnapshot(next){ listeners.doc=next; next(docSnap()); return ()=>{}; } }; },
+  collection(){ return { onSnapshot(next){ listeners.col=next; next(colSnap()); return ()=>{}; } }; }
+};
+window.addEventListener("storage",e=>{ if(e.key===LS){ store=loadStore(); notify(); } });
+function start(){
+  db=local; canWrite=true;
+  try{ navigator.storage?.persist?.().catch(()=>{}); }catch(_){}
+  db.doc("league/config").onSnapshot(s=>{ loaded.config=true; config=s.exists?normalize(s.data()):null; if(tab!=="scores"||!draftDirty) render(); });
+  db.collection("weeks").onSnapshot(s=>{ const w={}; s.docs.forEach(d=>{const x=d.data(); if(x&&x.week) w[x.week]=x;}); weeks=w; loaded.weeks=true;
+    if(tab==="scores"&&draftDirty) return; if(tab==="scores") draft=null; render(); });
+}
+start();
+})();
+</script>
+</body></html>
