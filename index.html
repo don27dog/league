@@ -70,6 +70,8 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--lane)}
 .vs{color:var(--pin);font-family:var(--display);font-weight:800;padding:0 6px}
 tr.tot td{font-weight:700;background:var(--soft)}
 tr.abs td{color:var(--muted)}
+tr.sub-tot td{color:var(--muted);font-size:.85rem}
+td.win{color:var(--good);font-weight:800}
 .highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
 .hs li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .hs li:last-child{border-bottom:0}
@@ -90,7 +92,7 @@ details summary{cursor:pointer}
 #ghStatus:empty{display:none}
 </style></head><body>
 <header class="band"><div class="wrap"><div class="brand"><h1>Fishers Island Bowling League</h1><span class="meta">4 teams · week 0 of 14 · handicap 100% of 200</span></div>
-<nav class="tabs"><a href="#standings">Standings</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a></nav></div></header>
+<nav class="tabs"><a href="#standings">Standings</a><a href="#results">Weekly Results</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a></nav></div></header>
 <main><div class="wrap"><div id="standings"></div><section class="sec"><h2>Team Standings</h2>
    <div class="tbl"><table><thead><tr><th></th><th>Team</th><th>Won</th><th>Lost</th><th>Pct</th><th>Behind</th><th>Scratch Pins</th><th>Pins + Hdcp</th></tr></thead><tbody><tr><td class="rank">1</td><td class="l"><b>Team 1</b></td>
     <td class="num-strong">0</td><td>0</td><td>—</td>
@@ -102,7 +104,7 @@ details summary{cursor:pointer}
     <td class="num-strong">0</td><td>0</td><td>—</td>
     <td class="muted">0</td><td>0</td><td>0</td></tr></tbody></table></div>
    <p class="note">Each match is worth 1 point per game plus 1 for the higher total series, all with handicap. Ties split the points. Ties in standings break on total pins with handicap.</p></section>
-   <div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div><div id="averages"></div><section class="sec"><h2>Averages &amp; Handicaps</h2>
+   <div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div><div id="results"></div><div id="averages"></div><section class="sec"><h2>Averages &amp; Handicaps</h2>
   <p class="note">Handicap = 100% of (200 − average), rounded down. The handicap shown applies to the next week bowled. Bowlers with no games yet use their starting average (marked “est”). Absent (blind) games count for the team but not for the bowler's average.</p>
   <div class="tbl"><table><thead><tr><th>Bowler</th><th class="l">Team</th><th>Games</th><th>Pins</th><th>Average</th><th>Handicap</th><th>High Game</th><th>High Series</th></tr></thead><tbody>
   <tr><td class="l"><b>Donnie</b></td><td class="l muted">Team 1</td><td>0</td><td>0</td>
@@ -125,4 +127,4 @@ details summary{cursor:pointer}
   <td class="num-strong">72 <span class="pill">est</span></td><td class="num-strong">128</td><td>—</td><td>—</td></tr>
   </tbody></table></div></section><section class="sec" id="highs"><h2>Season Highs</h2><h3>Individual</h3><div class="highs"><div class="card hs"><h3>High Game · Scratch</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>High Series · Scratch</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>High Game · Handicap</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>High Series · Handicap</h3><p class="muted small">No scores yet.</p></div></div><h3>Team</h3><div class="highs"><div class="card hs"><h3>Team High Game · Scratch</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>Team High Series · Scratch</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>Team High Game · Handicap</h3><p class="muted small">No scores yet.</p></div><div class="card hs"><h3>Team High Series · Handicap</h3><p class="muted small">No scores yet.</p></div></div></section>
   <section class="sec" id="teams"><h2>Teams</h2><div class="grid2"><div class="card"><h3>Team 1</h3><table><tbody><tr><td class="l">Donnie</td><td>avg 194 · hdcp 6</td></tr><tr><td class="l">Todd</td><td>avg 80 · hdcp 120</td></tr><tr><td class="l">Joe</td><td>avg 93 · hdcp 107</td></tr><tr><td class="l">John</td><td>avg 76 · hdcp 124</td></tr></tbody></table></div><div class="card"><h3>Team 2</h3><table><tbody><tr><td class="l">Skinner</td><td>avg 154 · hdcp 46</td></tr><tr><td class="l">Ez</td><td>avg 89 · hdcp 111</td></tr><tr><td class="l">Sacco</td><td>avg 106 · hdcp 94</td></tr><tr><td class="l">David</td><td>avg 98 · hdcp 102</td></tr></tbody></table></div><div class="card"><h3>Team 3</h3><table><tbody><tr><td class="l">Shannon</td><td>avg 112 · hdcp 88</td></tr><tr><td class="l">Teddy</td><td>avg 96 · hdcp 104</td></tr><tr><td class="l">Alex</td><td>avg 79 · hdcp 121</td></tr><tr><td class="l">Lucas</td><td>avg 114 · hdcp 86</td></tr></tbody></table></div><div class="card"><h3>Team 4</h3><table><tbody><tr><td class="l">Caelan</td><td>avg 80 · hdcp 120</td></tr><tr><td class="l">Thomas</td><td>avg 113 · hdcp 87</td></tr><tr><td class="l">Fergus</td><td>avg 116 · hdcp 84</td></tr><tr><td class="l">Emily</td><td>avg 72 · hdcp 128</td></tr></tbody></table></div></div></section>
-<p class="note">Updated Nov 7, 2026, 3:53 PM.</p></div></main></body></html>
+<p class="note">Updated Nov 7, 2026, 4:39 PM.</p></div></main></body></html>
