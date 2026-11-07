@@ -77,6 +77,8 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--lane)}
 .vs{color:var(--pin);font-family:var(--display);font-weight:800;padding:0 6px}
 tr.tot td{font-weight:700;background:var(--soft)}
 tr.abs td{color:var(--muted)}
+tr.sub-tot td{color:var(--muted);font-size:.85rem}
+td.win{color:var(--good);font-weight:800}
 .highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
 .hs li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .hs li:last-child{border-bottom:0}
@@ -103,6 +105,7 @@ details summary{cursor:pointer}
     <div class="brand"><h1 id="lgName">Bowling League</h1><span class="meta" id="lgMeta">Loading league…</span></div>
     <nav class="tabs" role="tablist" id="tabs">
       <button role="tab" data-tab="standings" aria-selected="true">Standings</button>
+      <button role="tab" data-tab="results" aria-selected="false">Weekly Results</button>
       <button role="tab" data-tab="scores" aria-selected="false">Enter Scores</button>
       <button role="tab" data-tab="bowlers" aria-selected="false">Averages &amp; Handicaps</button>
       <button role="tab" data-tab="highs" aria-selected="false">High Scores</button>
@@ -219,6 +222,7 @@ function render(){
   const v=$("#view");
   const ro = canWrite?"":`<div class="banner">You're viewing this league read-only. Only the league secretary can enter scores or change settings.</div>`;
   if(tab==="standings") v.innerHTML=ro+standings(S);
+  else if(tab==="results") v.innerHTML=resultsView(S);
   else if(tab==="scores") renderEntry(S);
   else if(tab==="bowlers") v.innerHTML=bowlers(S);
   else if(tab==="highs") v.innerHTML=highs(S);
@@ -404,6 +408,53 @@ function readSettings(){
 }
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number.isFinite(v)?v:a));
 
+// ---------- weekly results ----------
+let resultsWeek=null;
+const teamById=id=>config.teams.find(t=>t.id===id);
+function weekDetail(w){
+  const wk=weeks[w]; if(!wk) return [];
+  const G=config.gamesPerWeek, en=entering(w);
+  const side=tid=>{ const t=teamById(tid);
+    const rows=t.players.map(p=>{ const e=(wk.games||{})[p.id]||{}; const sub=!e.abs&&e.sub?config.subs.find(s=>s.id===e.sub):null; const by=sub||p; const x=en[by.id]||{avg:0,hcp:0};
+      const gs=[...Array(G)].map((_,g)=>{ if(e.abs) return Math.max(0,x.avg-config.absentPenalty); const v=(e.g||[])[g]; return v==null||v===""?null:Number(v); });
+      return {name:by.name,roster:p.name,sub:!!sub,abs:!!e.abs,hcp:x.hcp,gs}; });
+    const scr=[...Array(G)].map((_,g)=>rows.some(r=>r.gs[g]==null)?null:rows.reduce((s,r)=>s+r.gs[g],0));
+    const hc=rows.reduce((s,r)=>s+r.hcp,0);
+    return {t,rows,scr,hc,tot:scr.map(v=>v==null?null:v+hc)}; };
+  return (wk.matchups||[]).filter(m=>teamById(m.a)&&teamById(m.b)).map(m=>{
+    const A=side(m.a), B=side(m.b); let pa=0,pb=0,done=true;
+    for(let g=0;g<G;g++){ const a=A.tot[g],b=B.tot[g]; if(a==null||b==null){done=false;continue;}
+      if(a>b) pa+=config.ptsPerGame; else if(b>a) pb+=config.ptsPerGame; else {pa+=config.ptsPerGame/2;pb+=config.ptsPerGame/2;} }
+    const sa=A.tot.reduce((s,v)=>s+(v??0),0), sb=B.tot.reduce((s,v)=>s+(v??0),0);
+    if(done){ if(sa>sb) pa+=config.ptsSeries; else if(sb>sa) pb+=config.ptsSeries; else {pa+=config.ptsSeries/2;pb+=config.ptsSeries/2;} }
+    return {A,B,pa,pb,sa,sb,done}; });
+}
+function resultTable(X,Y,G,done,sx,sy){
+  const sum=a=>a.every(v=>v!=null)?a.reduce((s,v)=>s+v,0):"";
+  const cls=(a,b)=>a!=null&&b!=null&&a>b?' class="win"':"";
+  return `<div class="tbl"><table><thead><tr><th class="l">${esc(X.t.name)}</th><th>Hdcp</th>${[...Array(G)].map((_,g)=>`<th>G${g+1}</th>`).join("")}<th>Series</th></tr></thead><tbody>
+  ${X.rows.map(r=>`<tr class="${r.abs?"abs":""}"><td class="l">${r.abs?`${esc(r.roster)} <span class="pill">absent · blind</span>`:r.sub?`${esc(r.name)} <span class="pill">sub for ${esc(r.roster)}</span>`:esc(r.name)}</td><td>${r.hcp}</td>
+    ${r.gs.map(v=>`<td>${v??""}</td>`).join("")}<td class="num-strong">${r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):""}</td></tr>`).join("")}
+  <tr class="sub-tot"><td class="l">Scratch</td><td></td>${X.scr.map(v=>`<td>${v??""}</td>`).join("")}<td>${sum(X.scr)}</td></tr>
+  <tr class="sub-tot"><td class="l">Handicap</td><td></td>${X.scr.map(()=>`<td>${X.hc}</td>`).join("")}<td>${X.hc*G}</td></tr>
+  <tr class="tot"><td class="l">Total</td><td></td>${X.tot.map((v,g)=>`<td${cls(v,Y.tot[g])}>${v??""}</td>`).join("")}<td${done?cls(sx,sy):""}>${done?sx:""}</td></tr>
+  </tbody></table></div>`;
+}
+function weekResultsHtml(w){
+  const G=config.gamesPerWeek, ms=weekDetail(w);
+  if(!ms.length) return `<div class="card empty">No matches recorded for week ${w}.</div>`;
+  return ms.map(m=>`<article class="card match"><div class="match-head">
+    <div class="row"><b>${esc(m.A.t.name)}</b><span class="pill ${m.pa>m.pb?"win":m.pa<m.pb?"loss":""}">${fmt(m.pa)}</span><span class="vs">VS</span><span class="pill ${m.pb>m.pa?"win":m.pb<m.pa?"loss":""}">${fmt(m.pb)}</span><b>${esc(m.B.t.name)}</b></div>
+    ${m.done?"":'<span class="pill">in progress</span>'}</div>
+    <div class="grid2">${resultTable(m.A,m.B,G,m.done,m.sa,m.sb)}${resultTable(m.B,m.A,G,m.done,m.sb,m.sa)}</div></article>`).join("");
+}
+function resultsView(S){
+  const wks=S.weeksBowled; if(resultsWeek==null||!wks.includes(resultsWeek)) resultsWeek=wks[wks.length-1]??null;
+  if(!resultsWeek) return `<section class="sec"><h2>Weekly Results</h2><div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div></section>`;
+  return `<section class="sec"><div class="row"><h2>Weekly Results</h2><select id="resw" aria-label="Week">${wks.map(w=>`<option value="${w}" ${w===resultsWeek?"selected":""}>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</option>`).join("")}</select></div>
+  <p class="note">Green totals won that game. Handicaps are each bowler's handicap entering the week.</p>${weekResultsHtml(resultsWeek)}</section>`;
+}
+
 // ---------- print & export ----------
 function top3(arr){ const seen=new Set(), items=[]; for(const x of arr){ if(seen.has(x.pid)) continue; seen.add(x.pid); items.push(x); if(items.length===3) break; } return items; }
 let recapWeek=null, pendingRestore=null;
@@ -543,12 +594,11 @@ async function ghPut(file,b64content,msg,branch){
   if(!r.ok) throw new Error(ghErr(r.status));
 }
 async function ghExists(file,branch){ const g=await gh(`/contents/${file}?ref=${encodeURIComponent(branch)}`); return g.ok; }
+const ICON_SVG="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">  <defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2a6fbf\"/><stop offset=\"1\" stop-color=\"#16467f\"/></linearGradient></defs>  <rect width=\"512\" height=\"512\" fill=\"url(#g)\"/>  <g transform=\"translate(-22 18) scale(.86) translate(41 0)\"><clipPath id=\"pc\"><path d=\"M256 70 C300 70 312 110 306 150 C300 185 284 200 284 215 C284 240 336 270 340 340 C344 400 316 440 300 455 L212 455 C196 440 168 400 172 340 C176 270 228 240 228 215 C228 200 212 185 206 150 C200 110 212 70 256 70 Z\"/></clipPath><path d=\"M256 70 C300 70 312 110 306 150 C300 185 284 200 284 215 C284 240 336 270 340 340 C344 400 316 440 300 455 L212 455 C196 440 168 400 172 340 C176 270 228 240 228 215 C228 200 212 185 206 150 C200 110 212 70 256 70 Z\" fill=\"#ffffff\"/>  <g clip-path=\"url(#pc)\" fill=\"#c4313b\"><rect x=\"150\" y=\"178\" width=\"220\" height=\"14\"/><rect x=\"150\" y=\"202\" width=\"220\" height=\"14\"/></g></g>  <circle cx=\"330\" cy=\"350\" r=\"92\" fill=\"#16467f\"/><circle cx=\"330\" cy=\"350\" r=\"82\" fill=\"#15212c\"/>  <circle cx=\"307.04\" cy=\"318.84\" r=\"9.02\" fill=\"#2a6fbf\"/><circle cx=\"331.64\" cy=\"309\" r=\"9.02\" fill=\"#2a6fbf\"/><circle cx=\"325.9\" cy=\"340.16\" r=\"10.66\" fill=\"#2a6fbf\"/>  <ellipse cx=\"358.7\" cy=\"321.3\" rx=\"16.400000000000002\" ry=\"8.200000000000001\" fill=\"#fff\" opacity=\".18\" transform=\"rotate(-35 358.7 321.3)\"/></svg>";
 function iconPng(size){
-  const c=document.createElement("canvas"); c.width=c.height=size; const x=c.getContext("2d"), u=size/100;
-  x.fillStyle="#1d5aa0"; x.fillRect(0,0,size,size);
-  x.fillStyle="#ffffff"; x.beginPath(); x.arc(50*u,52*u,30*u,0,Math.PI*2); x.fill();
-  x.fillStyle="#1d5aa0"; for(const [hx,hy] of [[40,40],[52,36],[47,50]]){ x.beginPath(); x.arc(hx*u,hy*u,4.6*u,0,Math.PI*2); x.fill(); }
-  return c.toDataURL("image/png").split(",")[1];
+  return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement("canvas"); c.width=c.height=size;
+    c.getContext("2d").drawImage(img,0,0,size,size); res(c.toDataURL("image/png").split(",")[1]); }; img.onerror=rej;
+    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(ICON_SVG); });
 }
 function setWebStatus(msg,bad){ const el=$("#ghStatus"); if(el){ el.textContent=msg; el.style.color=bad?"var(--pin)":"var(--muted)"; } }
 async function ghTest(s){
@@ -577,8 +627,8 @@ async function ghPublish(){
       const man={name:"League Secretary",short_name:"League",start_url:"app.html",scope:"./",display:"standalone",background_color:"#f3f5f7",theme_color:"#1d5aa0",
         icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
       if(!await ghExists("manifest.webmanifest",br)) await ghPut("manifest.webmanifest",b64(JSON.stringify(man,null,1)),"Home-screen app settings",br);
-      if(!await ghExists("icon-192.png",br)) await ghPut("icon-192.png",iconPng(192),"App icon",br);
-      if(!await ghExists("icon-512.png",br)) await ghPut("icon-512.png",iconPng(512),"App icon",br);
+      if(!await ghExists("icon-192.png",br)) await ghPut("icon-192.png",await iconPng(192),"App icon",br);
+      if(!await ghExists("icon-512.png",br)) await ghPut("icon-512.png",await iconPng(512),"App icon",br);
       s.iconsDone=true; }
     s.lastPublished=new Date().toISOString(); ghStore(s);
     toast("Published. The website updates in about a minute."); render();
@@ -618,8 +668,8 @@ function publicPage(){
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>${css}</style></head><body>
 <header class="band"><div class="wrap"><div class="brand"><h1>${esc(config.name)}</h1><span class="meta">${esc(meta)}</span></div>
-<nav class="tabs"><a href="#standings">Standings</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a>${last?'<a href="recap.html">Printable recap</a>':""}</nav></div></header>
-<main><div class="wrap"><div id="standings"></div>${standings(S)}<div id="averages"></div>${bowlers(S)}${highsStatic(S,last)}${teamsHtml}
+<nav class="tabs"><a href="#standings">Standings</a><a href="#results">Weekly Results</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a>${last?'<a href="recap.html">Printable recap</a>':""}</nav></div></header>
+<main><div class="wrap"><div id="standings"></div>${standings(S)}<div id="results"></div>${S.weeksBowled.length?`<section class="sec"><h2>Weekly Results</h2><p class="note">Green totals won that game.</p>${[...S.weeksBowled].reverse().map((w,i)=>i===0?`<h3>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</h3>${weekResultsHtml(w)}`:`<details class="card"><summary><b>Week ${w}</b>${weeks[w]?.date?" · "+esc(weeks[w].date):""}</summary><div class="sec" style="margin-top:12px">${weekResultsHtml(w)}</div></details>`).join("")}</section>`:""}<div id="averages"></div>${bowlers(S)}${highsStatic(S,last)}${teamsHtml}
 <p class="note">Updated ${esc(new Date().toLocaleString([], {dateStyle:"medium",timeStyle:"short"}))}.</p></div></main></body></html>`;
 }
 function renderWeb(){
@@ -682,6 +732,7 @@ document.addEventListener("change",e=>{
   const t=e.target;
   if(t.id==="ew"){ entryWeek=+t.value; draft=null; render(); }
   else if(t.id==="hw"){ highsWeek=+t.value; render(); }
+  else if(t.id==="resw"){ resultsWeek=+t.value; render(); }
   else if(t.id==="rw"){ recapWeek=+t.value; render(); }
   else if(t.id==="restoreFile"&&t.files?.[0]){
     t.files[0].text().then(txt=>{ let b; try{ b=JSON.parse(txt); }catch(_){ b=null; }
