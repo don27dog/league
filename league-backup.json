@@ -1,0 +1,132 @@
+{
+ "app": "League Secretary",
+ "format": 1,
+ "exportedAt": "2026-11-07T20:43:25.209Z",
+ "config": {
+  "name": "Fishers Island Bowling League",
+  "teamsCount": 4,
+  "playersPerTeam": 4,
+  "weeks": 14,
+  "gamesPerWeek": 3,
+  "hcpBasis": 200,
+  "hcpPct": 100,
+  "hcpMax": 0,
+  "ptsPerGame": 1,
+  "ptsSeries": 1,
+  "absentPenalty": 10,
+  "teams": [
+   {
+    "id": "t1",
+    "name": "Team 1",
+    "players": [
+     {
+      "id": "t1p1",
+      "name": "Donnie",
+      "startAvg": 194
+     },
+     {
+      "id": "t1p2",
+      "name": "Todd",
+      "startAvg": 80
+     },
+     {
+      "id": "t1p3",
+      "name": "Joe",
+      "startAvg": 93
+     },
+     {
+      "id": "t1p4",
+      "name": "John",
+      "startAvg": 76
+     }
+    ]
+   },
+   {
+    "id": "t2",
+    "name": "Team 2",
+    "players": [
+     {
+      "id": "t2p1",
+      "name": "Skinner",
+      "startAvg": 154
+     },
+     {
+      "id": "t2p2",
+      "name": "Ez",
+      "startAvg": 89
+     },
+     {
+      "id": "t2p3",
+      "name": "Sacco",
+      "startAvg": 106
+     },
+     {
+      "id": "t2p4",
+      "name": "David",
+      "startAvg": 98
+     }
+    ]
+   },
+   {
+    "id": "t3",
+    "name": "Team 3",
+    "players": [
+     {
+      "id": "t3p1",
+      "name": "Shannon",
+      "startAvg": 112
+     },
+     {
+      "id": "t3p2",
+      "name": "Teddy",
+      "startAvg": 96
+     },
+     {
+      "id": "t3p3",
+      "name": "Alex",
+      "startAvg": 79
+     },
+     {
+      "id": "t3p4",
+      "name": "Lucas",
+      "startAvg": 114
+     }
+    ]
+   },
+   {
+    "id": "t4",
+    "name": "Team 4",
+    "players": [
+     {
+      "id": "t4p1",
+      "name": "Caelan",
+      "startAvg": 80
+     },
+     {
+      "id": "t4p2",
+      "name": "Thomas",
+      "startAvg": 113
+     },
+     {
+      "id": "t4p3",
+      "name": "Fergus",
+      "startAvg": 116
+     },
+     {
+      "id": "t4p4",
+      "name": "Emily",
+      "startAvg": 72
+     }
+    ]
+   }
+  ],
+  "subs": [
+   {
+    "id": "smw6v5js3",
+    "name": "Raff Bob",
+    "startAvg": 115
+   }
+  ]
+ },
+ "weeks": []
+}
