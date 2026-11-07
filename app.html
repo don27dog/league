@@ -77,6 +77,9 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--lane)}
 .vs{color:var(--pin);font-family:var(--display);font-weight:800;padding:0 6px}
 tr.tot td{font-weight:700;background:var(--soft)}
 tr.abs td{color:var(--muted)}
+td.mv{white-space:nowrap}
+.mvb{font:600 .8rem var(--body);width:2.2em;height:2.2em;margin-left:4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--lane);cursor:pointer}
+.mvb:disabled{opacity:.3;cursor:default}
 tr.sub-tot td{color:var(--muted);font-size:.85rem}
 td.win{color:var(--good);font-weight:800}
 .highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
@@ -137,10 +140,11 @@ function normalize(c){
   const teams=[];
   for(let i=0;i<c.teamsCount;i++){
     const old=(c.teams||[])[i]||{};
-    const players=[];
+    const players=[], used=new Set((old.players||[]).slice(0,c.playersPerTeam).map(x=>x&&x.id).filter(Boolean));
     for(let j=0;j<c.playersPerTeam;j++){
       const op=(old.players||[])[j]||{};
-      players.push({id:`t${i+1}p${j+1}`, name:op.name||`Bowler ${i+1}-${j+1}`, startAvg:Number(op.startAvg)||0});
+      let id=op.id; if(!id){ let n=j+1; while(used.has(`t${i+1}p${n}`)) n++; id=`t${i+1}p${n}`; } used.add(id);
+      players.push({id, name:op.name||`Bowler ${i+1}-${j+1}`, startAvg:Number(op.startAvg)||0});
     }
     teams.push({id:`t${i+1}`, name:old.name||`Team ${i+1}`, players});
   }
@@ -348,10 +352,11 @@ function updateTotals(){
 function renderTeams(){
   const dis=canWrite?"":"disabled";
   $("#view").innerHTML=`<section class="sec"><div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2><button class="btn" id="saveTeams" ${dis}>Save teams</button></div>
-  <p class="note">Rename teams and bowlers and set each bowler's starting average (last season's or establishing average). The starting average sets the handicap until the bowler has games this season.</p>
+  <p class="note">Rename teams and bowlers and set each bowler's starting average (last season's or establishing average). The starting average sets the handicap until the bowler has games this season. Use the arrows to set each team's bowling order. It sets the order on the score sheet, weekly results and recap, and past scores stay with each bowler.</p>
   <div class="grid2">${config.teams.map((t,i)=>`<div class="card sec"><label class="f">Team ${i+1}<input id="tn_${t.id}" value="${esc(t.name)}" ${dis}></label>
-    <div class="tbl" style="border:0"><table><thead><tr><th>Bowler</th><th>Starting Avg</th></tr></thead><tbody>
-    ${t.players.map(p=>`<tr><td class="l"><input id="pn_${p.id}" value="${esc(p.name)}" style="width:100%" ${dis} aria-label="Bowler name"></td><td><input id="pa_${p.id}" class="g" style="width:4.5em" inputmode="numeric" value="${p.startAvg||""}" ${dis} aria-label="Starting average"></td></tr>`).join("")}
+    <div class="tbl" style="border:0"><table><thead><tr><th>Bowler</th><th>Starting Avg</th><th>Order</th></tr></thead><tbody>
+    ${t.players.map((p,j)=>`<tr><td class="l"><input id="pn_${p.id}" value="${esc(p.name)}" style="width:100%" ${dis} aria-label="Bowler name"></td><td><input id="pa_${p.id}" class="g" style="width:4.5em" inputmode="numeric" value="${p.startAvg||""}" ${dis} aria-label="Starting average"></td>
+    <td class="mv"><button class="mvb" data-mv="${t.id}|${j}|-1" ${dis||(j===0?"disabled":"")} aria-label="Move ${esc(p.name)} up">▲</button><button class="mvb" data-mv="${t.id}|${j}|1" ${dis||(j===t.players.length-1?"disabled":"")} aria-label="Move ${esc(p.name)} down">▼</button></td></tr>`).join("")}
     </tbody></table></div></div>`).join("")}</div>
   ${subsCard(dis)}</section>`;
 }
@@ -763,6 +768,8 @@ document.addEventListener("click",async e=>{
   else if(t.id==="ghForget"){ const x=ghSettings(); delete x.token; ghStore(x); toast("Token removed from this device."); render(); }
   else if(t.id==="saveTeams"){ await saveConfig(collectTeams(),"Teams saved."); }
   else if(t.id==="addSub"){ const c=collectTeams(); c.subs.push({id:"s"+Date.now().toString(36),name:`Sub ${c.subs.length+1}`,startAvg:0}); await saveConfig(c,"Sub added. Rename them below."); }
+  else if(t.dataset.mv){ const [tid,j,d]=t.dataset.mv.split("|"); const c=collectTeams(); const ps=c.teams.find(x=>x.id===tid).players; const i=+j, k=i+Number(d);
+    if(k<0||k>=ps.length) return; [ps[i],ps[k]]=[ps[k],ps[i]]; await saveConfig(c,"Bowling order saved."); }
   else if(t.dataset.rm){ const c=collectTeams(); c.subs=c.subs.filter(s=>s.id!==t.dataset.rm); await saveConfig(c,"Sub removed."); }
 });
 
