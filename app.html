@@ -605,10 +605,17 @@ async function ghPut(file,b64content,msg,branch){
 }
 async function ghExists(file,branch){ const g=await gh(`/contents/${file}?ref=${encodeURIComponent(branch)}`); return g.ok; }
 const ICON_SVG="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">  <defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2a6fbf\"/><stop offset=\"1\" stop-color=\"#16467f\"/></linearGradient></defs>  <rect width=\"512\" height=\"512\" fill=\"url(#g)\"/>  <g transform=\"translate(-22 18) scale(.86) translate(41 0)\"><clipPath id=\"pc\"><path d=\"M256 70 C300 70 312 110 306 150 C300 185 284 200 284 215 C284 240 336 270 340 340 C344 400 316 440 300 455 L212 455 C196 440 168 400 172 340 C176 270 228 240 228 215 C228 200 212 185 206 150 C200 110 212 70 256 70 Z\"/></clipPath><path d=\"M256 70 C300 70 312 110 306 150 C300 185 284 200 284 215 C284 240 336 270 340 340 C344 400 316 440 300 455 L212 455 C196 440 168 400 172 340 C176 270 228 240 228 215 C228 200 212 185 206 150 C200 110 212 70 256 70 Z\" fill=\"#ffffff\"/>  <g clip-path=\"url(#pc)\" fill=\"#c4313b\"><rect x=\"150\" y=\"178\" width=\"220\" height=\"14\"/><rect x=\"150\" y=\"202\" width=\"220\" height=\"14\"/></g></g>  <circle cx=\"330\" cy=\"350\" r=\"92\" fill=\"#16467f\"/><circle cx=\"330\" cy=\"350\" r=\"82\" fill=\"#15212c\"/>  <circle cx=\"307.04\" cy=\"318.84\" r=\"9.02\" fill=\"#2a6fbf\"/><circle cx=\"331.64\" cy=\"309\" r=\"9.02\" fill=\"#2a6fbf\"/><circle cx=\"325.9\" cy=\"340.16\" r=\"10.66\" fill=\"#2a6fbf\"/>  <ellipse cx=\"358.7\" cy=\"321.3\" rx=\"16.400000000000002\" ry=\"8.200000000000001\" fill=\"#fff\" opacity=\".18\" transform=\"rotate(-35 358.7 321.3)\"/></svg>";
-function iconPng(size){
+const SW_JS=`const C="league-secretary-v1";
+self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(["app.html","manifest.webmanifest","icon-192.png","icon-512.png"])).catch(()=>{}));});
+self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET"||new URL(r.url).origin!==location.origin)return;
+e.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(r,cp));}return res;}).catch(()=>caches.match(r,{ignoreSearch:true})));});
+`;
+function iconPng(size,mask){
   return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement("canvas"); c.width=c.height=size;
     c.getContext("2d").drawImage(img,0,0,size,size); res(c.toDataURL("image/png").split(",")[1]); }; img.onerror=rej;
-    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(ICON_SVG); });
+    const svg=mask?ICON_SVG.replace('<rect width="512" height="512" fill="url(#g)"/>','<rect width="512" height="512" fill="url(#g)"/><g transform="translate(38.4 38.4) scale(.85)">').replace("</svg>","</g></svg>"):ICON_SVG;
+    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); });
 }
 function setWebStatus(msg,bad){ const el=$("#ghStatus"); if(el){ el.textContent=msg; el.style.color=bad?"var(--pin)":"var(--muted)"; } }
 async function ghTest(s){
@@ -633,13 +640,17 @@ async function ghPublish(){
     setWebStatus("Publishing standings page…"); await ghPut("index.html",b64(publicPage()),`Update standings ${stamp}`,br);
     if(last){ setWebStatus("Publishing printable recap…"); await ghPut("recap.html",b64(recapDoc(last)),`Week ${last} recap`,br); }
     setWebStatus("Saving online backup…"); await ghPut("league-backup.json",b64(backupData()),`Backup ${stamp}`,br);
-    if(!s.iconsDone){ setWebStatus("Adding home-screen icon…");
-      const man={name:"League Secretary",short_name:"League",start_url:"app.html",scope:"./",display:"standalone",background_color:"#f3f5f7",theme_color:"#1d5aa0",
-        icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
-      if(!await ghExists("manifest.webmanifest",br)) await ghPut("manifest.webmanifest",b64(JSON.stringify(man,null,1)),"Home-screen app settings",br);
+    if(s.pwa!==2){ setWebStatus("Setting up the installable app…");
+      const man={id:"app.html",name:"League Secretary",short_name:"League",description:"Bowling league scores, averages and handicaps",start_url:"app.html",scope:"./",display:"standalone",
+        orientation:"any",background_color:"#1d5aa0",theme_color:"#1d5aa0",
+        icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},
+               {src:"icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"}]};
+      await ghPut("manifest.webmanifest",b64(JSON.stringify(man,null,1)),"Installable app settings",br);
+      await ghPut("sw.js",b64(SW_JS),"Offline support",br);
       if(!await ghExists("icon-192.png",br)) await ghPut("icon-192.png",await iconPng(192),"App icon",br);
       if(!await ghExists("icon-512.png",br)) await ghPut("icon-512.png",await iconPng(512),"App icon",br);
-      s.iconsDone=true; }
+      await ghPut("icon-maskable-512.png",await iconPng(512,true),"App icon for Android",br);
+      s.pwa=2; s.iconsDone=true; }
     s.lastPublished=new Date().toISOString(); ghStore(s);
     toast("Published. The website updates in about a minute."); render();
   }catch(e){ setWebStatus(e.message||"Publishing stopped. Try again.",true); }
@@ -710,7 +721,7 @@ function renderWeb(){
    <li>In the repository, tap <b>Add file</b> then <b>Upload files</b>, choose <b>app.html</b>, and tap <b>Commit changes</b>.</li>
    <li>Open the repository's <b>Settings</b>, then <b>Pages</b>. Under Branch choose <b>main</b> and <b>/ (root)</b>, then <b>Save</b>.</li>
    <li>Make a token: your profile picture, <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>. Set expiration to 1 year, choose <b>Only select repositories</b> and pick <b>league</b>, then under Permissions set <b>Contents</b> to <b>Read and write</b>. Generate it and copy the token.</li>
-   <li>On your tablet, open <b>https://YOUR-USERNAME.github.io/league/app.html</b> in Chrome, then menu <b>⋮</b> and <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+   <li>On your tablet, open <b>https://YOUR-USERNAME.github.io/league/app.html</b> in Chrome, then menu <b>⋮</b> and <b>Install app</b>. If you only see <b>Add to Home screen</b>, tap it and choose <b>Install</b>, not "Create shortcut". (Publish once first so the app is installable.)</li>
    <li>In the app, open this <b>Website</b> tab, enter your username, <b>league</b> and the token, and tap <b>Connect</b>. Then restore your Claude backup file and tap <b>Publish to website</b>.</li>
   </ol></details></section>`;
 }
@@ -803,6 +814,7 @@ function start(){
     if(tab==="scores"&&draftDirty) return; if(tab==="scores") draft=null; render(); });
 }
 start();
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
 </body></html>
