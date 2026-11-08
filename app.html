@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>League Secretary</title>
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d5aa0"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15365e">
+<meta name="theme-color" content="#1d5aa0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -15,22 +15,19 @@ html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important
 :root{
   --bg:#f3f5f7; --surface:#ffffff; --ink:#15212c; --muted:#5b6876; --line:#d9dfe5;
   --lane:#1d5aa0; --lane-ink:#ffffff; --pin:#c4313b; --maple:#c99550; --good:#1f7a4d; --soft:#e8eef5;
-  --band:#1d5aa0; --band-ink:#ffffff; --field:#ffffff; --field-line:#c3ccd6;
   --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0c1117; --surface:#18222d; --ink:#f3f6f9; --muted:#b8c3ce; --line:#3a4a5b;
-  --lane:#74adf2; --lane-ink:#06101b; --pin:#ff7f88; --maple:#ecc07c; --good:#62dba0; --soft:#243241;
-  --band:#15365e; --band-ink:#ffffff; --field:#0f1821; --field-line:#566a80; color-scheme:dark}}
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3642;
+  --lane:#4b8ad6; --lane-ink:#0b1219; --pin:#ee5d66; --maple:#d9aa66; --good:#4cc08a; --soft:#1d2a37; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0c1117; --surface:#18222d; --ink:#f3f6f9; --muted:#b8c3ce; --line:#3a4a5b;
-  --lane:#74adf2; --lane-ink:#06101b; --pin:#ff7f88; --maple:#ecc07c; --good:#62dba0; --soft:#243241;
-  --band:#15365e; --band-ink:#ffffff; --field:#0f1821; --field-line:#566a80; color-scheme:dark}
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3642;
+  --lane:#4b8ad6; --lane-ink:#0b1219; --pin:#ee5d66; --maple:#d9aa66; --good:#4cc08a; --soft:#1d2a37; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 .wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header.band{background:var(--band);color:var(--band-ink)}
+header.band{background:var(--lane);color:var(--lane-ink)}
 header.band .wrap{padding-block:18px 0;display:flex;flex-direction:column;gap:10px}
 .brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--display);font-weight:800;font-size:2.1rem;letter-spacing:.02em;margin:0;text-transform:uppercase;text-wrap:balance}
@@ -57,10 +54,10 @@ td.num-strong{font-weight:700}
 .muted{color:var(--muted)}
 .small{font-size:.82rem}
 .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.75rem;font-weight:600;background:var(--soft);color:var(--muted)}
-.pill.win{background:color-mix(in srgb,var(--good) 22%,transparent);color:var(--good)}
-.pill.loss{background:color-mix(in srgb,var(--pin) 20%,transparent);color:var(--pin)}
+.pill.win{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.loss{background:color-mix(in srgb,var(--pin) 15%,transparent);color:var(--pin)}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-input,select{font:500 .95rem var(--body);color:var(--ink);background:var(--field);border:1px solid var(--field-line);border-radius:7px;padding:7px 9px;min-width:0}
+input,select{font:500 .95rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 9px;min-width:0}
 input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--lane);outline-offset:1px}
 input.g{width:3.6em;text-align:center;padding:6px 2px;font-variant-numeric:tabular-nums}
 input.g.bad{border-color:var(--pin)}
@@ -641,9 +638,6 @@ async function ghPublish(){
   try{
     const br=s.branch||"main", stamp=new Date().toLocaleString(), S=compute(), last=S.weeksBowled[S.weeksBowled.length-1];
     setWebStatus("Publishing standings page…"); await ghPut("index.html",b64(publicPage()),`Update standings ${stamp}`,br);
-    const vman={id:"./",name:config.name,short_name:(n=>{if(n.length<=12)return n;let o="";for(const w of n.split(/\s+/)){if((o+" "+w).trim().length>12)break;o=(o+" "+w).trim();}return o||n.slice(0,12);})(config.name),description:"Standings, averages and high scores",start_url:"./",scope:"./",display:"standalone",background_color:"#1d5aa0",theme_color:"#1d5aa0",
-      icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},{src:"icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"}]};
-    await ghPut("viewer.webmanifest",b64(JSON.stringify(vman,null,1)),"Home-screen settings for bowlers",br);
     if(last){ setWebStatus("Publishing printable recap…"); await ghPut("recap.html",b64(recapDoc(last)),`Week ${last} recap`,br); }
     setWebStatus("Saving online backup…"); await ghPut("league-backup.json",b64(backupData()),`Backup ${stamp}`,br);
     if(s.pwa!==2){ setWebStatus("Setting up the installable app…");
@@ -691,15 +685,13 @@ function publicPage(){
   const meta=`${config.teamsCount} teams · week ${S.weeksBowled.length} of ${config.weeks} · handicap ${config.hcpPct}% of ${config.hcpBasis}`;
   const teamsHtml=`<section class="sec" id="teams"><h2>Teams</h2><div class="grid2">${config.teams.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><table><tbody>${t.players.map(p=>{const x=S.players[p.id]; return `<tr><td class="l">${esc(p.name)}</td><td>${x.avg?`avg ${x.avg} · hdcp ${x.hcp}`:""}</td></tr>`;}).join("")}</tbody></table></div>`).join("")}</div></section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>${esc(config.name)}</title><meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d5aa0"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15365e">
-<link rel="manifest" href="viewer.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-title" content="${esc(config.name)}">
+<title>${esc(config.name)}</title><meta name="theme-color" content="#1d5aa0">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>${css}</style></head><body>
 <header class="band"><div class="wrap"><div class="brand"><h1>${esc(config.name)}</h1><span class="meta">${esc(meta)}</span></div>
 <nav class="tabs"><a href="#standings">Standings</a><a href="#results">Weekly Results</a><a href="#averages">Averages</a><a href="#highs">High Scores</a><a href="#teams">Teams</a>${last?'<a href="recap.html">Printable recap</a>':""}</nav></div></header>
 <main><div class="wrap"><div id="standings"></div>${standings(S)}<div id="results"></div>${S.weeksBowled.length?`<section class="sec"><h2>Weekly Results</h2><p class="note">Green totals won that game.</p>${[...S.weeksBowled].reverse().map((w,i)=>i===0?`<h3>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</h3>${weekResultsHtml(w)}`:`<details class="card"><summary><b>Week ${w}</b>${weeks[w]?.date?" · "+esc(weeks[w].date):""}</summary><div class="sec" style="margin-top:12px">${weekResultsHtml(w)}</div></details>`).join("")}</section>`:""}<div id="averages"></div>${bowlers(S)}${highsStatic(S,last)}${teamsHtml}
-<p class="note">Updated ${esc(new Date().toLocaleString([], {dateStyle:"medium",timeStyle:"short"}))}. Add this page to your home screen: in Chrome tap ⋮ then Install app; on iPhone tap Share then Add to Home Screen.</p></div></main>
-<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});<\/script></body></html>`;
+<p class="note">Updated ${esc(new Date().toLocaleString([], {dateStyle:"medium",timeStyle:"short"}))}.</p></div></main></body></html>`;
 }
 function renderWeb(){
   const s=ghSettings(), url=siteUrl(s), ready=ghReady();
