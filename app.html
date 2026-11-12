@@ -110,6 +110,10 @@ h2.sh{font-size:1.1rem;border-bottom:2px solid var(--ink);padding-bottom:3px;mar
 h2.sh small{font:500 .8rem var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
 .sheet-sub{font-weight:700;margin:2px 0 2px}
 .grid2.ros{grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr))}
+.ros .card{padding:10px}
+.ros .tbl th,.ros .tbl td{padding:7px 5px}
+.ros .tbl th{letter-spacing:.03em;font-size:.68rem}
+.ros .tbl th:first-child,.ros .tbl td:first-child{padding-left:8px}
 .tbl.plain{border:0;border-radius:0;background:transparent}
 .tbl.plain th{background:transparent;color:var(--ink);border-bottom:2px solid var(--ink);text-transform:none;letter-spacing:0;font-size:.78rem;font-weight:700;padding:5px 8px}
 .tbl.plain td{padding:4px 8px;font-size:.88rem}
@@ -290,10 +294,10 @@ function teamRosters(S,title="Team Rosters"){
   const wks=S.weeksBowled, w=wks[wks.length-1]||0;
   const rrow=p=>{ const x=S.players[p.id]; if(isVac(p,w)) return `<tr><td class="l muted">Vacant</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
     return `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${x.avg?(x.est?x.avg+"e":x.avg):""}</td><td>${x.avg?x.hcp:""}</td><td>${x.pins?x.pins.toLocaleString():""}</td><td>${x.games||""}</td><td>${x.hg||""}</td><td>${x.hs||""}</td></tr>`; };
-  const rtab=(title,ps)=>`<div><div class="sheet-sub">${esc(title)}</div><div class="tbl plain"><table><thead><tr><th class="l">Name</th><th>Avg</th><th>Hdcp</th><th>Total Pins</th><th>Games</th><th>High Game</th><th>High Series</th></tr></thead><tbody>${ps.map(rrow).join("")}</tbody></table></div></div>`;
+  const rtab=(title,ps)=>`<div class="card sec"><h3 style="margin:0">${esc(title)}</h3><div class="tbl" style="border:0;border-radius:0"><table><thead><tr><th class="l">Name</th><th>Avg</th><th>Hdcp</th><th>Total Pins</th><th>Games</th><th>High Game</th><th>High Series</th></tr></thead><tbody>${ps.map(rrow).join("")}</tbody></table></div></div>`;
   const usedSubs=config.subs.filter(s=>S.players[s.id].games>0);
-  return `<h2 class="sh">${esc(title)}</h2><div class="grid2 ros">${config.teams.map((t,i)=>rtab(`${i+1} - ${t.name}`,t.players)).join("")}${usedSubs.length?rtab("Substitutes",usedSubs):""}</div>
-    <p class="note">${w?`Season stats through week ${w}. Avg and Hdcp are for week ${w+1}.`:"No games bowled yet. Avg and Hdcp show starting averages."} “e” = average not yet established (fewer than 3 games). High game and series are scratch.</p>`;
+  return `<section class="sec"><h2>${esc(title)}</h2><div class="grid2 ros">${config.teams.map((t,i)=>rtab(`${i+1} - ${t.name}`,t.players)).join("")}${usedSubs.length?rtab("Substitutes",usedSubs):""}</div>
+    <p class="note">${w?`Season stats through week ${w}. Avg and Hdcp are for week ${w+1}.`:"No games bowled yet. Avg and Hdcp show starting averages."} “e” = average not yet established (fewer than 3 games). High game and series are scratch.</p></section>`;
 }
 function standings(S){
   // laid out like the printed Standings sheet
@@ -302,28 +306,28 @@ function standings(S){
   const lw={}; if(w) for(const r of (S.results[w]||[])){ lw[r.a]=[r.pa,r.pb]; lw[r.b]=[r.pb,r.pa]; }
   const hiT=(k,id)=>{ const x=S.season[k].find(e=>e.pid===id); return x?x.v:""; };
   const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
-  const head=`<div class="sheet-head"><b>${esc(config.name)}</b><span>Fishers Island Community Center${config.season?" · "+esc(config.season)+" season":""}</span>
-    <span>${w?`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+esc(weeks[w].date):""} · `:""}Handicap ${config.hcpPct}% of ${config.hcpBasis}</span></div>`;
-  const stand=`<h2 class="sh">Team Standings</h2><div class="tbl plain"><table><thead><tr><th>Place</th><th>#</th><th class="l">Team Name</th><th>Pts Won</th><th>Pts Lost</th><th>% Won</th><th>Last Wk</th><th>Scratch Pins</th><th>Hdcp Pins</th><th>Pins+Hdcp</th><th>Hi Hdcp Gm</th><th>Hi Hdcp Sr</th></tr></thead><tbody>
-    ${ts.map((t,i)=>`<tr><td>${i+1}</td><td>${tnum(t.id)}</td><td class="l"><b>${esc(t.name)}</b></td><td class="num-strong">${fmt(t.won)}</td><td>${fmt(t.lost)}</td><td>${t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):""}</td>
+  const sub=`<p class="note">${w?`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+esc(weeks[w].date):""} · `:""}Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?", max "+config.hcpMax:""}</p>`;
+  const stand=`<section class="sec"><h2>Team Standings</h2>${sub}<div class="tbl"><table><thead><tr><th>Place</th><th class="l">Team Name</th><th>Pts Won</th><th>Pts Lost</th><th>% Won</th><th>Last Wk</th><th>Scratch Pins</th><th>Hdcp Pins</th><th>Pins+Hdcp</th><th>Hi Hdcp Gm</th><th>Hi Hdcp Sr</th></tr></thead><tbody>
+    ${ts.map((t,i)=>`<tr><td class="rank">${i+1}</td><td class="l"><b>${esc(t.name)}</b></td><td class="num-strong">${fmt(t.won)}</td><td>${fmt(t.lost)}</td><td>${t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):""}</td>
       <td>${lw[t.id]?fmt(lw[t.id][0])+"-"+fmt(lw[t.id][1]):""}</td><td>${t.scratch.toLocaleString()}</td><td>${(t.hdcp-t.scratch).toLocaleString()}</td><td>${t.hdcp.toLocaleString()}</td><td>${hiT("thg",t.id)}</td><td>${hiT("ths",t.id)}</td></tr>`).join("")}
-    </tbody></table></div>`;
-  if(!w) return `<section class="sec sheet">${head}${stand}<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div></section>`;
+    </tbody></table></div>
+    <p class="note">Each match is worth ${fmt(config.ptsPerGame)} point${config.ptsPerGame==1?"":"s"} per game plus ${fmt(config.ptsSeries)} for the higher series, all with handicap. Ties split the points.</p></section>`;
+  if(!w) return `${stand}<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div>`;
   const md=weekDetail(w);
   const gh=[...Array(G)].map((_,g)=>`<th>-${g+1}-</th>`).join("");
   const mside=(X,pts,tot)=>`<td class="l"><b>${tnum(X.t.id)}-${esc(X.t.name)}</b></td>${X.tot.map(v=>`<td>${v??""}</td>`).join("")}<td>${tot}</td><td class="num-strong">${fmt(pts)}</td>`;
-  const mtab=`<div class="tbl plain"><table><thead><tr><th class="l">Team</th>${gh}<th>Total</th><th>Won</th><th></th><th class="l">Team</th>${gh}<th>Total</th><th>Won</th></tr></thead><tbody>
+  const mtab=`<div class="tbl"><table><thead><tr><th class="l">Team</th>${gh}<th>Total</th><th>Won</th><th></th><th class="l">Team</th>${gh}<th>Total</th><th>Won</th></tr></thead><tbody>
     ${md.map(m=>`<tr>${mside(m.A,m.pa,m.done?m.sa:"")}<td class="vs" style="text-align:center">vs</td>${mside(m.B,m.pb,m.done?m.sb:"")}</tr>`).join("")}</tbody></table></div>`;
   const nm=w<config.weeks?((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b):[];
-  const review=`<h2 class="sh">Review of Week ${w} <small>team totals with handicap</small></h2>${mtab}
-    ${nm.length?`<p class="note">Week ${w+1}: ${nm.map(x=>`${tnum(x.a)}-${esc(tname(x.a))} vs ${tnum(x.b)}-${esc(tname(x.b))}`).join(" · ")}</p>`:""}`;
+  const review=`<section class="sec"><h2>Review of Week ${w}</h2><p class="note">Team totals with handicap for each game.</p>${mtab}
+    ${nm.length?`<p class="note">Week ${w+1}: ${nm.map(x=>`${tnum(x.a)}-${esc(tname(x.a))} vs ${tnum(x.b)}-${esc(tname(x.b))}`).join(" · ")}</p>`:""}</section>`;
   const rosters=teamRosters(S);
   const cats=[["Scratch Game","sg"],["Scratch Series","ss"],["Hdcp Game","hg"],["Hdcp Series","hs"],["Team Scratch Game","tsg"],["Team Scratch Series","tss"],["Team Hdcp Game","thg"],["Team Hdcp Series","ths"]];
   const cell=x=>x?`${esc(x.name)} <b>${x.v}</b>`:"";
-  const highs=`<h2 class="sh">High Scores</h2><div class="tbl plain"><table><thead><tr><th class="l"></th><th class="l">1st</th><th class="l">2nd</th><th class="l">3rd</th></tr></thead><tbody>
+  const highs=`<section class="sec"><h2>High Scores</h2><div class="tbl"><table><thead><tr><th class="l"></th><th class="l">1st</th><th class="l">2nd</th><th class="l">3rd</th></tr></thead><tbody>
     ${cats.map(([l,k])=>{ const t=top3(S.season[k]); return `<tr><td class="l"><b>${l}</b></td>${[0,1,2].map(i=>`<td class="l">${cell(t[i])}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>
-    <p class="note">Season to date through week ${w}.</p>`;
-  return `<section class="sec sheet">${head}${stand}${review}${rosters}${highs}</section>`;
+    <p class="note">Season to date through week ${w}.</p></section>`;
+  return `${stand}${review}${rosters}${highs}`;
 }
 const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 
@@ -429,7 +433,7 @@ function updateTotals(){
 let teamsEdit=false;
 function renderTeams(){
   const dis=canWrite?"":"disabled";
-  if(!teamsEdit){ $("#view").innerHTML=`<section class="sec sheet"><div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2>${canWrite?'<button class="btn" id="editTeams">Edit teams &amp; bowlers</button>':""}</div>${teamRosters(compute(),"Team Rosters")}</section>`; return; }
+  if(!teamsEdit){ $("#view").innerHTML=`<div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2>${canWrite?'<button class="btn" id="editTeams">Edit teams &amp; bowlers</button>':""}</div>${teamRosters(compute(),"Team Rosters")}`; return; }
   $("#view").innerHTML=`<section class="sec"><div class="row" style="justify-content:space-between"><h2>Edit Teams &amp; Bowlers</h2><span class="row"><button class="btn ghost" id="doneTeams">Back to rosters</button><button class="btn" id="saveTeams" ${dis}>Save teams</button></span></div>
   <p class="note">Rename teams and bowlers and set each bowler's starting average (last season's or establishing average). Every bowler establishes an average after 3 games, and that average sets their handicap for the week it is established. The starting average is used only until then, for example for a blind score if they miss their first week. Use the arrows to set each team's bowling order. It sets the order on the score sheet, weekly results and recap, and past scores stay with each bowler. Tick <b>Vacant</b> for an empty spot. When someone fills it, untick Vacant, enter their name and starting average, and set <b>Starts Wk</b> to their first week: earlier weeks keep the vacant scores.</p>
   <div class="grid2 teamgrid">${config.teams.map((t,i)=>`<div class="card sec"><label class="f">Team ${i+1}<input id="tn_${t.id}" value="${esc(t.name)}" ${dis}></label>
@@ -727,8 +731,8 @@ function standingsSheetDoc(w){
   const lw={}; for(const r of (S.results[w]||[])){ lw[r.a]=[r.pa,r.pb]; lw[r.b]=[r.pb,r.pa]; }
   const hiT=(k,id)=>{ const x=S.season[k].find(e=>e.pid===id); return x?x.v:""; };
   const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
-  y=ptab(0,y,cw,[{label:"Place",w:26,align:"right"},{label:"#",w:16,align:"right"},{label:"Team Name"},{label:"Pts Won",w:32,align:"right"},{label:"Pts Lost",w:32,align:"right"},{label:"% Won",w:30,align:"right"},{label:"Last Wk",w:34,align:"right"},{label:"Scratch Pins",w:46,align:"right"},{label:"Hdcp Pins",w:40,align:"right"},{label:"Pins+Hdcp",w:44,align:"right"},{label:"Hi Hdcp Gm",w:42,align:"right"},{label:"Hi Hdcp Sr",w:42,align:"right"}],
-    ts.map((t,i)=>[i+1,tnum(t.id),{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):"",lw[t.id]?fmt(lw[t.id][0])+"-"+fmt(lw[t.id][1]):"",t.scratch.toLocaleString(),(t.hdcp-t.scratch).toLocaleString(),t.hdcp.toLocaleString(),hiT("thg",t.id),hiT("ths",t.id)]))+6;
+  y=ptab(0,y,cw,[{label:"Place",w:30,align:"right"},{label:"Team Name"},{label:"Pts Won",w:32,align:"right"},{label:"Pts Lost",w:32,align:"right"},{label:"% Won",w:30,align:"right"},{label:"Last Wk",w:34,align:"right"},{label:"Scratch Pins",w:46,align:"right"},{label:"Hdcp Pins",w:40,align:"right"},{label:"Pins+Hdcp",w:44,align:"right"},{label:"Hi Hdcp Gm",w:42,align:"right"},{label:"Hi Hdcp Sr",w:42,align:"right"}],
+    ts.map((t,i)=>[i+1,{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):"",lw[t.id]?fmt(lw[t.id][0])+"-"+fmt(lw[t.id][1]):"",t.scratch.toLocaleString(),(t.hdcp-t.scratch).toLocaleString(),t.hdcp.toLocaleString(),hiT("thg",t.id),hiT("ths",t.id)]))+6;
   // last week, one line per match
   y=head(y,`Review of Week ${w}  (team totals with handicap)`);
   const mcols=side=>[{label:"Team"},...[...Array(G)].map((_,g)=>({label:`-${g+1}-`,w:26,align:"right"})),{label:"Total",w:32,align:"right"},{label:"Won",w:24,align:"right"}];
@@ -1052,7 +1056,7 @@ function publicPage(){
       ${wks.length?`<section class="sec"><div class="row"><h2>Weekly Highs</h2>${weekSelect("selH")}</div>
       ${wks.map(w=>`<div class="sec" data-group="selH" data-w="${w}" ${w===last?"":"hidden"}><h3>Individual</h3><div class="highs">${ind(S.weekly[w])}</div><h3>Team</h3><div class="highs">${tm(S.weekly[w])}</div></div>`).join("")}
       <p class="note">Each bowler or team appears once per list. Individual series counts only bowlers who bowled every game; blind scores are left out.</p></section>`:""}`,
-    teams:`<section class="sec sheet">${teamRosters(S,"Team Rosters")}</section>`
+    teams:teamRosters(S,"Team Rosters")
   };
   const names={standings:"Standings",results:"Weekly Results",averages:"Averages",highs:"High Scores",teams:"Teams"};
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
