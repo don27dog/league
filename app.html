@@ -310,10 +310,12 @@ function standings(S){
     </tbody></table></div>`;
   if(!w) return `<section class="sec sheet">${head}${stand}<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div></section>`;
   const md=weekDetail(w);
-  const mtab=side=>`<div class="tbl plain"><table><thead><tr><th class="l">Team</th>${[...Array(G)].map((_,g)=>`<th>-${g+1}-</th>`).join("")}<th>Total</th><th>Won</th></tr></thead><tbody>
-    ${md.map(m=>{ const X=m[side], pts=side==="A"?m.pa:m.pb, tot=m.done?(side==="A"?m.sa:m.sb):""; return `<tr><td class="l"><b>${tnum(X.t.id)}-${esc(X.t.name)}</b></td>${X.tot.map(v=>`<td>${v??""}</td>`).join("")}<td>${tot}</td><td class="num-strong">${fmt(pts)}</td></tr>`; }).join("")}</tbody></table></div>`;
+  const gh=[...Array(G)].map((_,g)=>`<th>-${g+1}-</th>`).join("");
+  const mside=(X,pts,tot)=>`<td class="l"><b>${tnum(X.t.id)}-${esc(X.t.name)}</b></td>${X.tot.map(v=>`<td>${v??""}</td>`).join("")}<td>${tot}</td><td class="num-strong">${fmt(pts)}</td>`;
+  const mtab=`<div class="tbl plain"><table><thead><tr><th class="l">Team</th>${gh}<th>Total</th><th>Won</th><th></th><th class="l">Team</th>${gh}<th>Total</th><th>Won</th></tr></thead><tbody>
+    ${md.map(m=>`<tr>${mside(m.A,m.pa,m.done?m.sa:"")}<td class="vs" style="text-align:center">vs</td>${mside(m.B,m.pb,m.done?m.sb:"")}</tr>`).join("")}</tbody></table></div>`;
   const nm=w<config.weeks?((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b):[];
-  const review=`<h2 class="sh">Review of Week ${w} <small>team totals with handicap</small></h2><div class="grid2">${mtab("A")}${mtab("B")}</div>
+  const review=`<h2 class="sh">Review of Week ${w} <small>team totals with handicap</small></h2>${mtab}
     ${nm.length?`<p class="note">Week ${w+1}: ${nm.map(x=>`${tnum(x.a)}-${esc(tname(x.a))} vs ${tnum(x.b)}-${esc(tname(x.b))}`).join(" · ")}</p>`:""}`;
   const rosters=teamRosters(S);
   const cats=[["Scratch Game","sg"],["Scratch Series","ss"],["Hdcp Game","hg"],["Hdcp Series","hs"],["Team Scratch Game","tsg"],["Team Scratch Series","tss"],["Team Hdcp Game","thg"],["Team Hdcp Series","ths"]];
@@ -732,9 +734,9 @@ function standingsSheetDoc(w){
   const mcols=side=>[{label:"Team"},...[...Array(G)].map((_,g)=>({label:`-${g+1}-`,w:26,align:"right"})),{label:"Total",w:32,align:"right"},{label:"Won",w:24,align:"right"}];
   const half=(cw-14)/2, md=weekDetail(w);
   const mrow=(X,pts,tot)=>[{v:`${tnum(X.t.id)}-${X.t.name}`,bold:true},...X.tot.map(v=>v??""),tot,{v:fmt(pts),bold:true}];
-  const y1=ptab(0,y,half,mcols(),md.map(m=>mrow(m.A,m.pa,m.done?m.sa:"")));
-  const y2=ptab(half+14,y,half,mcols(),md.map(m=>mrow(m.B,m.pb,m.done?m.sb:"")));
-  y=Math.max(y1,y2)+2;
+  const gc=()=>[...Array(G)].map((_,g)=>({label:`-${g+1}-`,w:24,align:"right"}));
+  y=ptab(0,y,cw,[{label:"Team"},...gc(),{label:"Total",w:30,align:"right"},{label:"Won",w:24,align:"right"},{label:"",w:22,align:"center"},{label:"Team"},...gc(),{label:"Total",w:30,align:"right"},{label:"Won",w:24,align:"right"}],
+    md.map(m=>[...mrow(m.A,m.pa,m.done?m.sa:""),{v:"vs",align:"center",color:LG},...mrow(m.B,m.pb,m.done?m.sb:"")]))+2;
   if(w<config.weeks){ const nm=((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b);
     doc.text(0,y+7,`Week ${w+1}:  `+nm.map(x=>`${tnum(x.a)}-${tname(x.a)} vs ${tnum(x.b)}-${tname(x.b)}`).join("   ·   "),{size:6.8,color:LG}); y+=12; }
   y+=4;
