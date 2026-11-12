@@ -94,6 +94,11 @@ td.mv{white-space:nowrap}
 .mvb:disabled{opacity:.3;cursor:default}
 tr.sub-tot td{color:var(--muted);font-size:.85rem}
 td.win{color:var(--good);font-weight:800}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap}
+.subtab{font:600 .88rem var(--body);padding:8px 14px;border-radius:999px;border:1px solid var(--field-line);background:var(--surface);color:var(--ink);cursor:pointer}
+.subtab[aria-selected="true"]{background:var(--lane);border-color:var(--lane);color:var(--lane-ink)}
+.pdfprev{display:flex;flex-direction:column;align-items:center;gap:14px;padding:14px;background:var(--soft);border-radius:10px;overflow:hidden}
+.pdfpage{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);border-radius:2px;height:auto}
 .sheet{gap:10px}
 .sheet-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;font-size:.85rem;color:var(--muted)}
 .sheet-head b{font-family:var(--display);font-size:1.7rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink);line-height:1.1}
@@ -543,6 +548,26 @@ class PdfDoc{
   text(x,y,s,o={}){ this.ops.push({t:"T",x,y,s:String(s??""),size:o.size||9,bold:!!o.bold,color:o.color||INK,align:o.align||"left"}); }
   rect(x,y,w,h,fill){ this.ops.push({t:"R",x,y,w,h,fill}); }
   line(x1,y1,x2,y2,width=0.5,color=RULE){ this.ops.push({t:"L",x1,y1,x2,y2,width,color}); }
+  renderTo(box){
+    // draw each page onto a canvas so the report can be previewed before downloading
+    box.innerHTML=""; const cssW=Math.min(box.clientWidth||800,860), dpr=Math.min(window.devicePixelRatio||1,2), k=cssW/this.W;
+    const col=c=>`rgb(${c.map(v=>Math.round(v*255)).join(",")})`;
+    this.pages.forEach((pg,pi)=>{ const cv=document.createElement("canvas"); cv.className="pdfpage"; cv.width=Math.round(this.W*k*dpr); cv.height=Math.round(this.H*k*dpr);
+      cv.style.width=cssW+"px"; cv.style.maxWidth="100%"; cv.setAttribute("role","img"); cv.setAttribute("aria-label",`Page ${pi+1} of ${this.pages.length}`);
+      const g=cv.getContext("2d"); g.scale(k*dpr,k*dpr); this.drawPage(g,pi); box.appendChild(cv); });
+  }
+  drawPage(g,pi){ const pg=this.pages[pi], col=c=>`rgb(${c.map(v=>Math.round(v*255)).join(",")})`;
+      g.fillStyle="#fff"; g.fillRect(0,0,this.W,this.H);
+      const s=pg.scale, ox=this.M+(this.cw-this.cw*s)/2, X=x=>ox+x*s, Y=y=>this.M+y*s;
+      for(const o of pg.ops){
+        if(o.t==="R"){ g.fillStyle=col(o.fill); g.fillRect(X(o.x),Y(o.y),o.w*s,o.h*s); }
+        else if(o.t==="L"){ g.strokeStyle=col(o.color); g.lineWidth=o.width*s; g.beginPath(); g.moveTo(X(o.x1),Y(o.y1)); g.lineTo(X(o.x2),Y(o.y2)); g.stroke(); }
+        else { const sz=o.size*s, w=textW(o.s,o.size,o.bold)*s; let x=X(o.x); if(o.align==="right") x-=w; else if(o.align==="center") x-=w/2;
+          g.font=`${o.bold?"bold ":""}${sz}px Helvetica, Arial, sans-serif`; g.fillStyle=col(o.color); g.textBaseline="alphabetic"; g.fillText(o.s,x,Y(o.y)); } }
+      g.font="7.5px Helvetica, Arial, sans-serif"; g.fillStyle=col(GREY); g.fillText(`${this.footer}${this.footer?"  ·  ":""}Page ${pi+1} of ${this.pages.length}`,this.M,this.H-this.M+14);
+  }
+  images(dpi=150){ const k=dpi/72; return this.pages.map((_,pi)=>{ const cv=document.createElement("canvas"); cv.width=Math.round(this.W*k); cv.height=Math.round(this.H*k);
+    const g=cv.getContext("2d"); g.scale(k,k); this.drawPage(g,pi); return cv.toDataURL("image/png"); }); }
   fitPage(h){ const pg=this.pages[this.pages.length-1]; if(h>this.ch) pg.scale=this.ch/h; }
   bytes(){
     const f=n=>(Math.round(n*100)/100).toString(), col=c=>c.map(f).join(" ");
@@ -738,12 +763,35 @@ function reportPdf(kind,w){
     pdfTable(doc,0,y,doc.cw,[{label:"Wk",w:24,align:"right"},{label:"Date",w:60},{label:"Team",w:110},{label:"Bowler"},{label:"Hdcp",w:32,align:"right"},...[...Array(G)].map((_,g)=>({label:"G"+(g+1),w:32,align:"right"})),{label:"Series",w:40,align:"right"}],rows,{size:8.5,paginate:true}); }
   return doc;
 }
+const REPORTS=[["sheet","Standings sheet"],["recap","Weekly recap"],["results","Weekly results"],["averages","Averages & handicaps"],["highs","High scores"],["scores","Every score"]];
+let reportView="sheet";
+function reportDoc(kind){
+  if(kind==="recap") return recapPdfDoc(recapWeek);
+  if(kind==="sheet") return standingsSheetDoc(recapWeek);
+  return reportPdf(kind,recapWeek);
+}
+function printReport(kind){
+  if(!recapWeek) return toast("Enter a week of scores first.");
+  const imgs=reportDoc(kind).images(150), fr=document.createElement("iframe");
+  fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0"; document.body.appendChild(fr);
+  const d=fr.contentDocument; d.open();
+  d.write(`<!doctype html><html><head><title>${esc(config.name)}</title><style>@page{size:letter;margin:0}html,body{margin:0;padding:0}img{display:block;width:8.5in;height:11in;page-break-after:always;break-after:page}img:last-child{page-break-after:auto;break-after:auto}</style></head><body>${imgs.map(u=>`<img src="${u}">`).join("")}</body></html>`);
+  d.close();
+  const go=()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(_){ toast("Printing isn't available here. Use Download PDF instead."); } setTimeout(()=>fr.remove(),60000); };
+  const im=[...d.images]; let left=im.length; if(!left) return go(); im.forEach(i=>{ if(i.complete){ if(--left===0) go(); } else i.onload=i.onerror=()=>{ if(--left===0) go(); }; });
+}
+function reportFile(kind){ const names={sheet:`week-${recapWeek}-standings`,recap:`week-${recapWeek}-recap`,results:`week-${recapWeek}-results`,averages:"averages",highs:"high-scores",scores:"all-scores"}; return `${slug()}-${names[kind]||kind}.pdf`; }
 function exportPdf(kind){
-  if(kind==="recap"){ if(!recapWeek) return toast("Enter a week of scores first."); return dl(`${slug()}-week-${recapWeek}-recap.pdf`,recapPdfDoc(recapWeek).bytes()); }
-  if(kind==="sheet"){ if(!recapWeek) return toast("Enter a week of scores first."); return dl(`${slug()}-week-${recapWeek}-standings.pdf`,standingsSheetDoc(recapWeek).bytes()); }
-  const names={standings:"standings",averages:"averages",highs:"high-scores",results:"week-"+recapWeek+"-results",scores:"all-scores"};
-  if((kind==="results")&&!recapWeek) return toast("Enter a week of scores first.");
-  return dl(`${slug()}-${names[kind]}.pdf`,reportPdf(kind,recapWeek).bytes());
+  if(!recapWeek) return toast("Enter a week of scores first.");
+  return dl(reportFile(kind),reportDoc(kind).bytes());
+}
+const canShareFiles=()=>{ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File([new Uint8Array([37])],"t.pdf",{type:"application/pdf"})]})); }catch(_){ return false; } };
+async function shareReport(kind){
+  if(!recapWeek) return toast("Enter a week of scores first.");
+  const name=reportFile(kind), f=new File([reportDoc(kind).bytes()],name,{type:"application/pdf"}), label=REPORTS.find(r=>r[0]===kind)?.[1]||"Report";
+  if(!(navigator.canShare&&navigator.canShare({files:[f]}))) return toast("Sharing isn't available on this device. Use Download PDF instead.");
+  try{ await navigator.share({files:[f],title:`${config.name} · ${label}`,text:`${config.name} · ${label}${["sheet","recap","results"].includes(kind)?` · week ${recapWeek}`:""}`}); }
+  catch(e){ if(e&&e.name!=="AbortError") toast("Couldn't share the report. Try Download PDF instead."); }
 }
 
 // ---------- print & export ----------
@@ -809,13 +857,11 @@ function renderExport(S){
   const wks=S.weeksBowled; if(recapWeek==null||!wks.includes(recapWeek)) recapWeek=wks[wks.length-1]??null;
   const dis=canWrite?"":"disabled";
   $("#view").innerHTML=`<section class="sec"><h2>Print &amp; Export Reports</h2>
-   <p class="note">Every report downloads as a PDF. Open it to print, or email or text it to the league. The weekly recap always fits on one page.</p>
+   <p class="note">Tap a report to preview it. Tap <b>Print</b> to send it to a printer, <b>Share</b> to send it by text, email or another app, or <b>Download PDF</b> to save it.</p>
    <div class="row"><label class="f" style="flex-direction:row;align-items:center;gap:8px">Week <select id="rw" aria-label="Report week">${wks.length?wks.map(w=>`<option value="${w}" ${w===recapWeek?"selected":""}>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</option>`).join(""):"<option>No weeks bowled yet</option>"}</select></label></div>
-   <div class="grid2">
-    <div class="card sec"><h3>For the selected week</h3><div class="row"><button class="btn" data-pdf="sheet" ${wks.length?"":"disabled"}>Standings sheet</button><button class="btn ghost" data-pdf="recap" ${wks.length?"":"disabled"}>Weekly recap (1 page)</button><button class="btn ghost" data-pdf="results" ${wks.length?"":"disabled"}>Weekly results</button></div></div>
-    <div class="card sec"><h3>Season reports</h3><div class="row"><button class="btn ghost" data-pdf="averages">Averages &amp; handicaps</button><button class="btn ghost" data-pdf="highs">High scores</button><button class="btn ghost" data-pdf="scores">Every score</button></div></div>
-   </div>
-   ${wks.length?`<h3>Recap preview</h3><div class="tbl"><div class="rc" id="recapPrev"></div></div>`:`<div class="card empty">Enter a week of scores to make reports.</div>`}</section>
+   ${wks.length?`<div class="subtabs" role="tablist" aria-label="Reports">${REPORTS.map(([k,l])=>`<button role="tab" class="subtab" data-rep="${k}" aria-selected="${k===reportView}">${esc(l)}</button>`).join("")}</div>
+   <div class="row" style="justify-content:space-between"><span class="note" id="prevNote"></span><span class="row"><button class="btn" data-print="${reportView}">Print</button>${canShareFiles()?`<button class="btn ghost" data-share="${reportView}">Share</button>`:""}<button class="btn ghost" data-pdf="${reportView}">Download PDF</button></span></div>
+   <div class="pdfprev" id="pdfPrev"></div>`:`<div class="card empty">Enter a week of scores to make reports.</div>`}</section>
   <section class="sec"><h2>Export Data</h2><div class="grid2">
    <div class="card sec"><h3>Spreadsheets (CSV)</h3><p class="note">Open in Excel, Google Sheets or Numbers.</p>
     <div class="row"><button class="btn ghost" id="dlStand">Standings</button><button class="btn ghost" id="dlAvg">Averages</button><button class="btn ghost" id="dlScores">Every score</button></div></div>
@@ -823,7 +869,8 @@ function renderExport(S){
     <div class="row" id="restoreRow"><button class="btn ghost" id="dlBackup">Download backup</button>
     <label class="btn ghost" style="display:inline-flex;align-items:center" ${canWrite?"":'aria-disabled="true"'}>Restore from backup<input type="file" id="restoreFile" accept=".json,application/json" ${dis} style="position:absolute;opacity:0;width:1px;height:1px"></label></div></div>
   </div></section>`;
-  if(wks.length) $("#recapPrev").innerHTML=recapBody(computeThrough(recapWeek),recapWeek);
+  if(wks.length){ const d=reportDoc(reportView), box=$("#pdfPrev"); d.renderTo(box);
+    $("#prevNote").textContent=`${REPORTS.find(r=>r[0]===reportView)[1]} · week ${recapWeek} · ${d.pages.length} page${d.pages.length===1?"":"s"}`; }
 }
 const slug=()=>(config.name||"league").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"league";
 const csv=rows=>rows.map(r=>r.map(v=>{v=v==null?"":String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;}).join(",")).join("\r\n")+"\r\n";
@@ -1105,6 +1152,9 @@ document.addEventListener("click",async e=>{
   else if(t.id==="ghRestore") ghRestore();
   else if(t.id==="ghForget"){ const x=ghSettings(); delete x.token; ghStore(x); toast("Token removed from this device."); render(); }
   else if(t.dataset.pdf) exportPdf(t.dataset.pdf);
+  else if(t.dataset.print) printReport(t.dataset.print);
+  else if(t.dataset.share) shareReport(t.dataset.share);
+  else if(t.dataset.rep){ reportView=t.dataset.rep; render(); }
   else if(t.id==="saveTeams"){ await saveConfig(collectTeams(),"Teams saved."); }
   else if(t.id==="addSub"){ const c=collectTeams(); c.subs.push({id:"s"+Date.now().toString(36),name:`Sub ${c.subs.length+1}`,startAvg:0}); await saveConfig(c,"Sub added. Rename them below."); }
   else if(t.dataset.mv){ const [tid,j,d]=t.dataset.mv.split("|"); const c=collectTeams(); const ps=c.teams.find(x=>x.id===tid).players; const i=+j, k=i+Number(d);
