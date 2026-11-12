@@ -94,6 +94,8 @@ td.mv{white-space:nowrap}
 .mvb:disabled{opacity:.3;cursor:default}
 tr.sub-tot td{color:var(--muted);font-size:.85rem}
 td.win{color:var(--good);font-weight:800}
+.match .tbl th,.match .tbl td{padding:7px 6px}
+.match .tbl th:first-child,.match .tbl td:first-child{padding-left:10px}
 .highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
 .hs li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .hs li:last-child{border-bottom:0}
@@ -476,12 +478,13 @@ function weekDetail(w){
 function resultTable(X,Y,G,done,sx,sy){
   const sum=a=>a.every(v=>v!=null)?a.reduce((s,v)=>s+v,0):"";
   const cls=(a,b)=>a!=null&&b!=null&&a>b?' class="win"':"";
-  return `<div class="tbl"><table><thead><tr><th class="l">${esc(X.t.name)}</th><th>Hdcp</th>${[...Array(G)].map((_,g)=>`<th>G${g+1}</th>`).join("")}<th>Series</th></tr></thead><tbody>
+  const ser=r=>r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):"", serH=r=>{ const n=r.gs.filter(v=>v!=null).length; return n?ser(r)+r.hcp*n:""; };
+  return `<div class="tbl"><table><thead><tr><th class="l">${esc(X.t.name)}</th><th>Hdcp</th>${[...Array(G)].map((_,g)=>`<th>G${g+1}</th>`).join("")}<th>Series</th><th>Ser+Hdcp</th></tr></thead><tbody>
   ${X.rows.map(r=>`<tr class="${r.abs||r.vac?"abs":""}"><td class="l">${r.abs?`${esc(r.roster)} <span class="pill">absent · blind</span>`:r.sub?`${esc(r.name)} <span class="pill">sub for ${esc(r.roster)}</span>`:esc(r.name)}</td><td>${r.hcp}</td>
-    ${r.gs.map(v=>`<td>${v??""}</td>`).join("")}<td class="num-strong">${r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):""}</td></tr>`).join("")}
-  <tr class="sub-tot"><td class="l">Scratch</td><td></td>${X.scr.map(v=>`<td>${v??""}</td>`).join("")}<td>${sum(X.scr)}</td></tr>
-  <tr class="sub-tot"><td class="l">Handicap</td><td></td>${X.scr.map(()=>`<td>${X.hc}</td>`).join("")}<td>${X.hc*G}</td></tr>
-  <tr class="tot"><td class="l">Total</td><td></td>${X.tot.map((v,g)=>`<td${cls(v,Y.tot[g])}>${v??""}</td>`).join("")}<td${done?cls(sx,sy):""}>${done?sx:""}</td></tr>
+    ${r.gs.map(v=>`<td>${v??""}</td>`).join("")}<td class="num-strong">${ser(r)}</td><td class="num-strong">${serH(r)}</td></tr>`).join("")}
+  <tr class="sub-tot"><td class="l">Scratch</td><td></td>${X.scr.map(v=>`<td>${v??""}</td>`).join("")}<td>${sum(X.scr)}</td><td></td></tr>
+  <tr class="sub-tot"><td class="l">Handicap</td><td></td>${X.scr.map(()=>`<td>${X.hc}</td>`).join("")}<td>${X.hc*G}</td><td></td></tr>
+  <tr class="tot"><td class="l">Total</td><td></td>${X.tot.map((v,g)=>`<td${cls(v,Y.tot[g])}>${v??""}</td>`).join("")}<td${done?cls(sx,sy):""}>${done?sx:""}</td><td></td></tr>
   </tbody></table></div>`;
 }
 function weekResultsHtml(w){
@@ -505,7 +508,7 @@ const CP1252={0x20AC:128,0x201A:130,0x0192:131,0x201E:132,0x2026:133,0x2020:134,
 function pdfCodes(str){ const out=[]; for(const ch of String(str??"")){ let c=ch.codePointAt(0); if(c<32) continue; if(c>255) c=CP1252[c]??(c===0x2212?45:63); else if(c>=127&&c<160) c=63; out.push(c);} return out; }
 function textW(str,size,bold){ const w=PDFW[bold?"Helvetica-Bold":"Helvetica"]; let t=0; for(const c of pdfCodes(str)) t+=w[c-32]||556; return t*size/1000; }
 function fitText(str,size,bold,maxW){ str=String(str??""); if(textW(str,size,bold)<=maxW) return str; let s=str; while(s.length>1&&textW(s+"…",size,bold)>maxW) s=s.slice(0,-1); return s+"…"; }
-const INK=[0.08,0.11,0.15], GREY=[0.38,0.42,0.47], BLUE=[0.11,0.35,0.63], GREEN=[0.1,0.48,0.3], HEAD=[0.92,0.93,0.94], TEAMBG=[0.86,0.9,0.94], RULE=[0.75,0.77,0.8];
+const INK=[0.07,0.07,0.07], GREY=[0.4,0.4,0.4], BLUE=[0.11,0.35,0.63], GREEN=[0.1,0.48,0.3], HEAD=[0.925,0.925,0.925], TEAMBG=[0.867,0.894,0.925], RULE=[0.776,0.776,0.776];
 class PdfDoc{
   constructor(o={}){ this.W=o.w||612; this.H=o.h||792; this.M=o.margin??36; this.footer=o.footer||""; this.pages=[]; this.newPage(); }
   get cw(){ return this.W-2*this.M; } get ch(){ return this.H-2*this.M-14; }
@@ -543,34 +546,40 @@ class PdfDoc{
 }
 // table: cols [{label,w,align}] (w null = share the rest); rows [{cells:[v|{v,bold,color,span,r}], bold, fill}]
 function pdfTable(doc,x,y,width,cols,rows,o={}){
-  const size=o.size||8.5, rh=size*1.62, hsz=Math.max(6.5,size-1.6), fixed=cols.reduce((s,c)=>s+(c.w||0),0), flex=cols.filter(c=>!c.w).length;
-  const ws=cols.map(c=>c.w||(width-fixed)/Math.max(1,flex));
-  const head=yy=>{ if(o.title){ doc.rect(x,yy,width,rh,TEAMBG); doc.text(x+4,yy+rh-size*0.5,fitText(o.title,size,true,width-8),{size,bold:true}); yy+=rh; }
-    if(o.noHead) return yy; doc.rect(x,yy,width,rh*0.92,HEAD); let cx=x;
-    cols.forEach((c,i)=>{ const al=c.align||"left"; const lbl=fitText(String(c.label||"").toUpperCase(),hsz,true,ws[i]-6);
-      doc.text(al==="right"?cx+ws[i]-3:cx+3,yy+rh*0.92-hsz*0.62,lbl,{size:hsz,bold:true,color:GREY,align:al}); cx+=ws[i]; });
-    return yy+rh*0.92; };
+  // styled like the on-screen recap: full grid lines, grey heading row, team name in the heading
+  const size=o.size||8.5, rh=size*1.62, hsz=Math.max(6.5,size-1.4), fixed=cols.reduce((s,c)=>s+(c.w||0),0), flex=cols.filter(c=>!c.w).length;
+  const ws=cols.map(c=>c.w||(width-fixed)/Math.max(1,flex)), edges=[x]; ws.forEach(w=>edges.push(edges[edges.length-1]+w));
+  const grid=(yy,h,skip)=>{ edges.forEach((ex,i)=>{ if(skip&&skip.has(i)) return; doc.line(ex,yy,ex,yy+h,0.5,RULE); }); doc.line(x,yy+h,x+width,yy+h,0.5,RULE); };
+  const head=yy=>{ doc.line(x,yy,x+width,yy,0.5,RULE);
+    if(o.title&&!o.titleInHead){ doc.rect(x,yy,width,rh,TEAMBG); doc.text(x+4,yy+rh-size*0.5,fitText(o.title,size,true,width-8),{size,bold:true}); grid(yy,rh,new Set(edges.map((_,i)=>i).slice(1,-1))); yy+=rh; }
+    if(o.noHead) return yy; const hh=rh*0.95; doc.rect(x,yy,width,hh,HEAD); let cx=x;
+    cols.forEach((c,i)=>{ const al=c.align||"left";
+      if(i===0&&o.title&&o.titleInHead){ doc.rect(cx,yy,ws[0],hh,TEAMBG); doc.text(cx+3,yy+hh-size*0.55,fitText(o.title,size,true,ws[0]-6),{size,bold:true}); cx+=ws[i]; return; }
+      const lbl=fitText(String(c.label||"").toUpperCase(),hsz,true,ws[i]-6);
+      doc.text(al==="right"?cx+ws[i]-3:al==="center"?cx+ws[i]/2:cx+3,yy+hh-hsz*0.6,lbl,{size:hsz,bold:true,color:INK,align:al}); cx+=ws[i]; });
+    grid(yy,hh); return yy+hh; };
   y=head(y);
   for(const r of rows){
     if(o.paginate&&y+rh>doc.ch){ doc.newPage(); y=head(0); }
     if(r.fill) doc.rect(x,y,width,rh,r.fill);
-    let cx=x, ci=0;
+    let cx=x, ci=0; const skip=new Set();
     for(const cell of r.cells){ const c=(cell&&typeof cell==="object")?cell:{v:cell}; const span=c.span||1; const w=ws.slice(ci,ci+span).reduce((a,b)=>a+b,0);
+      for(let k=1;k<span;k++) skip.add(ci+k);
       const al=c.align||cols[ci].align||"left", bold=c.bold??r.bold??false, color=c.color||r.color||INK, by=y+rh-size*0.52;
       if(c.r!=null){ const rw=textW(String(c.r),size,true); doc.text(cx+w-3,by,c.r,{size,bold:true,color,align:"right"}); doc.text(cx+3,by,fitText(c.v,size,bold,w-rw-10),{size,bold,color:c.vcolor||color}); }
       else if(c.v!=null&&c.v!==""){ const s=fitText(c.v,size,bold,w-6); doc.text(al==="right"?cx+w-3:al==="center"?cx+w/2:cx+3,by,s,{size,bold,color,align:al}); }
       cx+=w; ci+=span; }
-    y+=rh; doc.line(x,y,x+width,y);
+    grid(y,rh,skip); y+=rh;
   }
   return y;
 }
 function pdfH2(doc,x,y,w,t){ doc.text(x,y+10,String(t).toUpperCase(),{size:9.5,bold:true}); doc.line(x,y+13,x+w,y+13,1.2,INK); return y+18; }
-function pdfTitle(doc,sub){ doc.text(0,18,config.name,{size:19,bold:true,color:BLUE}); doc.text(0,32,sub,{size:8.5,color:GREY}); return 42; }
+function pdfTitle(doc,sub){ doc.text(0,18,String(config.name).toUpperCase(),{size:19,bold:true}); doc.text(0,31,sub,{size:8.5,color:GREY}); return 40; }
 const pdfFooter=()=>`${config.name} · printed ${new Date().toLocaleDateString()}`;
 const wkLabel=w=>`Week ${w}${weeks[w]?.date?" · "+weeks[w].date:""}`;
-function standingsRows(S){ return Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp).map((t,i)=>({cells:[{v:i+1,bold:true,color:BLUE},{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1)+"%":"",t.scratch.toLocaleString(),t.hdcp.toLocaleString()]})); }
+function standingsRows(S){ return Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp).map((t,i)=>({cells:[{v:i+1},{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1)+"%":"",t.scratch.toLocaleString(),t.hdcp.toLocaleString()]})); }
 const STAND_COLS=[{label:"",w:18,align:"right"},{label:"Team"},{label:"Won",w:34,align:"right"},{label:"Lost",w:34,align:"right"},{label:"Pct",w:40,align:"right"},{label:"Scratch",w:52,align:"right"},{label:"+Hdcp",w:52,align:"right"}];
-function resultsRows(S,w){ const tn=id=>config.teams.find(t=>t.id===id)?.name||""; return (S.results[w]||[]).map(r=>({cells:[{v:tn(r.a),bold:r.pa>r.pb},{v:fmt(r.pa),bold:true,color:r.pa>r.pb?GREEN:INK},r.ta.toLocaleString(),{v:tn(r.b),bold:r.pb>r.pa},{v:fmt(r.pb),bold:true,color:r.pb>r.pa?GREEN:INK},r.tb.toLocaleString()]})); }
+function resultsRows(S,w){ const tn=id=>config.teams.find(t=>t.id===id)?.name||""; return (S.results[w]||[]).map(r=>({cells:[{v:tn(r.a),bold:r.pa>r.pb},{v:fmt(r.pa),bold:true},r.ta.toLocaleString(),{v:tn(r.b),bold:r.pb>r.pa},{v:fmt(r.pb),bold:true},r.tb.toLocaleString()]})); }
 const RES_COLS=[{label:"Team"},{label:"Pts",w:26,align:"right"},{label:"Total",w:40,align:"right"},{label:"Opponent"},{label:"Pts",w:26,align:"right"},{label:"Total",w:40,align:"right"}];
 const HS_CATS=[["Game","sg"],["Series","ss"],["Game hdcp","hg"],["Series hdcp","hs"],["Team game","tsg"],["Team series","tss"],["Team game hdcp","thg"],["Team series hdcp","ths"]];
 function highsTable(doc,y,S,w){
@@ -586,17 +595,17 @@ function bowlerTables(doc,y,S,w,cols2=2,size=8){
   const num=v=>v==null||v===""?null:Number(v);
   const gcells=gs=>{ const real=gs.filter(v=>v!=null); return [...gs.map(v=>v??""),{v:real.length?real.reduce((a,b)=>a+b,0):"",bold:true}]; };
   const subFor={}; for(const t of config.teams) for(const p of t.players){ const e=games[p.id]; if(e&&!e.abs&&e.sub) subFor[e.sub]={g:e.g||[],team:t.name}; }
-  const prow=p=>{ if(isVac(p,w)){ const V=VAC(); return {cells:[{v:"Vacant",color:GREY},{v:`vacant ${V.score} + ${V.hcp} hdcp`,span:G+1,color:GREY},"",""]}; }
+  const prow=p=>{ if(isVac(p,w)){ const V=VAC(); return {cells:[{v:"Vacant",color:GREY},{v:`vacant ${V.score} + ${V.hcp} hdcp`,span:G+1,color:GREY,align:"left"},"",""]}; }
     const x=S.players[p.id], e=games[p.id]; let mid;
-    if(!e) mid=[{v:"",span:G+1}]; else if(e.abs) mid=[{v:"absent (blind)",span:G+1,color:GREY}];
-    else if(e.sub){ const s=config.subs.find(q=>q.id===e.sub); mid=[{v:"sub: "+(s?.name||""),span:G+1,color:GREY}]; }
+    if(!e) mid=[{v:"",span:G+1}]; else if(e.abs) mid=[{v:"absent (blind)",span:G+1,color:GREY,align:"left"}];
+    else if(e.sub){ const s=config.subs.find(q=>q.id===e.sub); mid=[{v:"sub: "+(s?.name||""),span:G+1,color:GREY,align:"left"}]; }
     else mid=gcells([...Array(G)].map((_,g)=>num((e.g||[])[g])));
     return {cells:[p.name,...mid,x.avg||"",x.avg?x.hcp:""]}; };
   const blocks=config.teams.map(t=>({title:t.name,rows:t.players.map(prow)}));
   const subs=config.subs.filter(s=>subFor[s.id]).map(s=>({cells:[{v:s.name+" (for "+subFor[s.id].team+")"},...gcells([...Array(G)].map((_,g)=>num(subFor[s.id].g[g]))),S.players[s.id].avg||"",S.players[s.id].avg?S.players[s.id].hcp:""]}));
   if(subs.length) blocks.push({title:"Subs",rows:subs});
   for(let i=0;i<blocks.length;i+=cols2){ let maxY=y;
-    for(let j=0;j<cols2&&i+j<blocks.length;j++){ const b=blocks[i+j]; maxY=Math.max(maxY,pdfTable(doc,j*(tw+gap),y,tw,cols,b.rows,{size,title:b.title})); }
+    for(let j=0;j<cols2&&i+j<blocks.length;j++){ const b=blocks[i+j]; maxY=Math.max(maxY,pdfTable(doc,j*(tw+gap),y,tw,cols,b.rows,{size,title:b.title,titleInHead:true})); }
     y=maxY+6; }
   return y;
 }
@@ -611,26 +620,85 @@ function recapPdfDoc(w){
   y=highsTable(doc,pdfH2(doc,0,y,doc.cw,"High Scores"),S,w);
   doc.fitPage(y); return doc;
 }
+// condensed one-page standings sheet
+function standingsSheetDoc(w){
+  const S=computeThrough(w), G=config.gamesPerWeek, doc=new PdfDoc({margin:28,footer:pdfFooter()});
+  const cw=doc.cw, BLK=[0,0,0], LG=[0.45,0.45,0.45];
+  const tnum=id=>config.teams.findIndex(t=>t.id===id)+1, tname=id=>config.teams.find(t=>t.id===id)?.name||"";
+  // plain black-and-white table: bold underlined headings, no cell lines
+  const ptab=(x,y,width,cols,rows,o={})=>{ const sz=o.size||7.2, rh=sz*1.42, fixed=cols.reduce((s,c)=>s+(c.w||0),0), flex=cols.filter(c=>!c.w).length;
+    const ws=cols.map(c=>c.w||(width-fixed)/Math.max(1,flex));
+    if(o.title){ doc.text(x,y+sz+1,o.title,{size:sz+0.8,bold:true}); y+=rh+1; }
+    let cx=x; cols.forEach((c,i)=>{ const al=c.align||"left"; if(c.label) doc.text(al==="right"?cx+ws[i]-2:al==="center"?cx+ws[i]/2:cx+1,y+sz,fitText(c.label,sz-0.6,true,ws[i]-3),{size:sz-0.6,bold:true,align:al}); cx+=ws[i]; });
+    y+=rh-1; doc.line(x,y,x+width,y,0.6,BLK);
+    for(const r of rows){ cx=x; let ci=0; for(const cell of r){ const c=(cell&&typeof cell==="object")?cell:{v:cell}; const span=c.span||1, wd=ws.slice(ci,ci+span).reduce((a,b)=>a+b,0), al=c.align||cols[ci].align||"left";
+        if(c.v!==""&&c.v!=null) doc.text(al==="right"?cx+wd-2:al==="center"?cx+wd/2:cx+1,y+sz+1.5,fitText(c.v,sz,!!c.bold,wd-3),{size:sz,bold:!!c.bold,color:c.color||BLK,align:al}); cx+=wd; ci+=span; }
+      y+=rh; }
+    return y; };
+  const head=(y,t)=>{ doc.text(0,y+9,t,{size:8.6,bold:true}); doc.line(0,y+11.5,cw,y+11.5,1,BLK); return y+15; };
+  // heading
+  let y=0;
+  doc.text(cw/2,12,config.name,{size:13,bold:true,align:"center"});
+  doc.text(cw/2,23,`Fishers Island Community Center${config.season?" · "+config.season+" season":""}`,{size:7.5,align:"center"});
+  doc.text(cw/2,32,`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+weeks[w].date:""} · Handicap ${config.hcpPct}% of ${config.hcpBasis}`,{size:7.5,align:"center"});
+  y=38;
+  // team standings
+  y=head(y,"Team Standings");
+  const lw={}; for(const r of (S.results[w]||[])){ lw[r.a]=[r.pa,r.pb]; lw[r.b]=[r.pb,r.pa]; }
+  const hiT=(k,id)=>{ const x=S.season[k].find(e=>e.pid===id); return x?x.v:""; };
+  const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
+  y=ptab(0,y,cw,[{label:"Place",w:26,align:"right"},{label:"#",w:16,align:"right"},{label:"Team Name"},{label:"Pts Won",w:32,align:"right"},{label:"Pts Lost",w:32,align:"right"},{label:"% Won",w:30,align:"right"},{label:"Last Wk",w:34,align:"right"},{label:"Scratch Pins",w:46,align:"right"},{label:"Hdcp Pins",w:40,align:"right"},{label:"Pins+Hdcp",w:44,align:"right"},{label:"Hi Hdcp Gm",w:42,align:"right"},{label:"Hi Hdcp Sr",w:42,align:"right"}],
+    ts.map((t,i)=>[i+1,tnum(t.id),{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):"",lw[t.id]?fmt(lw[t.id][0])+"-"+fmt(lw[t.id][1]):"",t.scratch.toLocaleString(),(t.hdcp-t.scratch).toLocaleString(),t.hdcp.toLocaleString(),hiT("thg",t.id),hiT("ths",t.id)]))+6;
+  // last week, one line per match
+  y=head(y,`Review of Week ${w}  (team totals with handicap)`);
+  const mcols=side=>[{label:"Team"},...[...Array(G)].map((_,g)=>({label:`-${g+1}-`,w:26,align:"right"})),{label:"Total",w:32,align:"right"},{label:"Won",w:24,align:"right"}];
+  const half=(cw-14)/2, md=weekDetail(w);
+  const mrow=(X,pts,tot)=>[{v:`${tnum(X.t.id)}-${X.t.name}`,bold:true},...X.tot.map(v=>v??""),tot,{v:fmt(pts),bold:true}];
+  const y1=ptab(0,y,half,mcols(),md.map(m=>mrow(m.A,m.pa,m.done?m.sa:"")));
+  const y2=ptab(half+14,y,half,mcols(),md.map(m=>mrow(m.B,m.pb,m.done?m.sb:"")));
+  y=Math.max(y1,y2)+2;
+  if(w<config.weeks){ const nm=((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b);
+    doc.text(0,y+7,`Week ${w+1}:  `+nm.map(x=>`${tnum(x.a)}-${tname(x.a)} vs ${tnum(x.b)}-${tname(x.b)}`).join("   ·   "),{size:6.8,color:LG}); y+=12; }
+  y+=4;
+  // rosters, two teams across
+  y=head(y,"Team Rosters");
+  const rcols=[{label:"Name"},{label:"Avg",w:28,align:"right"},{label:"Hdcp",w:28,align:"right"},{label:"Total Pins",w:44,align:"right"},{label:"Games",w:30,align:"right"},{label:"High Game",w:38,align:"right"},{label:"High Series",w:42,align:"right"}];
+  const prow=p=>{ const x=S.players[p.id]; if(isVac(p,w)) return [{v:"Vacant",color:LG},"","","","","",""];
+    return [{v:p.name,bold:true},x.avg?(x.est?x.avg+"e":x.avg):"",x.avg?x.hcp:"",x.pins?x.pins.toLocaleString():"",x.games||"",x.hg||"",x.hs||""]; };
+  const blocks=config.teams.map((t,i)=>({title:`${i+1} - ${t.name}`,rows:t.players.map(prow)}));
+  const usedSubs=config.subs.filter(s=>S.players[s.id].games>0); if(usedSubs.length) blocks.push({title:"Substitutes",rows:usedSubs.map(prow)});
+  for(let i=0;i<blocks.length;i+=2){ let m=y; for(let j=0;j<2&&i+j<blocks.length;j++) m=Math.max(m,ptab(j*(half+14),y,half,rcols,blocks[i+j].rows,{title:blocks[i+j].title})); y=m+4; }
+  doc.text(0,y+4,`Season stats through week ${w}. Avg and Hdcp are for week ${w+1}.  "e" = average not yet established (fewer than 3 games).  High game and series are scratch.`,{size:6.5,color:LG}); y+=10;
+  // high scores, men and women together
+  y=head(y,"High Scores");
+  const cats=[["Scratch Game","sg"],["Scratch Series","ss"],["Hdcp Game","hg"],["Hdcp Series","hs"],["Team Scratch Game","tsg"],["Team Scratch Series","tss"],["Team Hdcp Game","thg"],["Team Hdcp Series","ths"]];
+  const cell=x=>x?`${x.name}  ${x.v}`:"";
+  y=ptab(0,y,cw,[{label:"",w:90},{label:"1st"},{label:"2nd"},{label:"3rd"}],cats.map(([l,k])=>{ const t=top3(S.season[k]); return [{v:l,bold:true},cell(t[0]),cell(t[1]),cell(t[2])]; }));
+  doc.text(0,y+9,`Season to date through week ${w}.`,{size:6.5,color:LG}); y+=12;
+  doc.fitPage(y); return doc;
+}
 function reportPdf(kind,w){
   const S=compute(), doc=new PdfDoc({footer:pdfFooter()}); let y;
-  if(kind==="standings"){ const last=S.weeksBowled[S.weeksBowled.length-1];
-    y=pdfTitle(doc,`Standings after week ${S.weeksBowled.length} of ${config.weeks}`);
-    y=pdfTable(doc,0,pdfH2(doc,0,y,doc.cw,"Team Standings"),doc.cw,STAND_COLS,standingsRows(S),{size:9.5})+10;
-    if(last) pdfTable(doc,0,pdfH2(doc,0,y,doc.cw,"Week "+last+" Results"),doc.cw,RES_COLS,resultsRows(S,last),{size:9.5});
-    doc.text(0,doc.ch,`Points: ${fmt(config.ptsPerGame)} per game won, ${fmt(config.ptsSeries)} for higher series, all with handicap.`,{size:7.5,color:GREY}); }
+  if(kind==="standings"){ const last=w&&S.weeksBowled.includes(w)?w:S.weeksBowled[S.weeksBowled.length-1];
+    y=pdfTitle(doc,`Standings after week ${last||0} of ${config.weeks}${last&&weeks[last]?.date?" · "+weeks[last].date:""} · Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?", max "+config.hcpMax:""}`);
+    const Sx=last?computeThrough(last):S;
+    y=pdfTable(doc,0,pdfH2(doc,0,y,doc.cw,"Standings"),doc.cw,STAND_COLS,standingsRows(Sx),{size:9.5})+10;
+    if(last) y=pdfTable(doc,0,pdfH2(doc,0,y,doc.cw,"Week "+last+" Results"),doc.cw,RES_COLS,resultsRows(Sx,last),{size:9.5})+8;
+    doc.text(0,y+6,`Points: ${fmt(config.ptsPerGame)} per game won, ${fmt(config.ptsSeries)} for higher series, all with handicap. Ties split the points.`,{size:7.5,color:GREY}); }
   else if(kind==="averages"){ y=pdfTitle(doc,`Averages and handicaps after week ${S.weeksBowled.length} · Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?", max "+config.hcpMax:""}`);
     const ps=Object.values(S.players).sort((a,b)=>b.avg-a.avg||a.name.localeCompare(b.name));
     pdfTable(doc,0,y,doc.cw,[{label:"#",w:22,align:"right"},{label:"Bowler"},{label:"Team",w:120},{label:"Games",w:40,align:"right"},{label:"Pins",w:50,align:"right"},{label:"Average",w:50,align:"right"},{label:"Hdcp",w:40,align:"right"},{label:"High Game",w:56,align:"right"},{label:"High Series",w:60,align:"right"}],
       ps.map((p,i)=>({cells:[i+1,{v:p.name,bold:true},p.team,p.games,p.pins.toLocaleString(),{v:p.avg?(p.est?p.avg+" est":p.avg):"",bold:true},{v:p.avg?p.hcp:"",bold:true},p.hg||"",p.hs||""]})),{size:9,paginate:true}); }
   else if(kind==="highs"){ y=pdfTitle(doc,`High scores · top 3 per list, each bowler or team once${w?" · "+wkLabel(w):""}`); highsTable(doc,y,S,w); }
   else if(kind==="results"){ y=pdfTitle(doc,`Weekly results · ${wkLabel(w)} · green totals won that game`); const G=config.gamesPerWeek;
-    const cols=[{label:"Bowler"},{label:"Hdcp",w:28,align:"right"},...[...Array(G)].map((_,g)=>({label:"G"+(g+1),w:28,align:"right"})),{label:"Series",w:36,align:"right"}];
+    const cols=[{label:"Bowler"},{label:"Hdcp",w:30,align:"right"},...[...Array(G)].map((_,g)=>({label:"G"+(g+1),w:25,align:"right"})),{label:"Series",w:36,align:"right"},{label:"Ser+Hdcp",w:50,align:"right"}];
+    const ser=r=>r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):"", serH=r=>{ const n=r.gs.filter(v=>v!=null).length; return n?ser(r)+r.hcp*n:""; };
     const half=(doc.cw-14)/2;
     const side=(X,Yt,done,sx,sy)=>{ const sum=a=>a.every(v=>v!=null)?a.reduce((s,v)=>s+v,0):""; const win=(a,b)=>a!=null&&b!=null&&a>b;
-      return [...X.rows.map(r=>({cells:[{v:r.abs?r.roster+" (absent)":r.sub?r.name+" (sub)":r.name,color:r.abs||r.vac?GREY:INK},r.hcp,...r.gs.map(v=>v??""),{v:r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):"",bold:true}]})),
-        {cells:[{v:"Scratch",color:GREY},"",...X.scr.map(v=>v??""),sum(X.scr)],color:GREY},
-        {cells:[{v:"Handicap",color:GREY},"",...X.scr.map(()=>X.hc),X.hc*G],color:GREY},
-        {cells:[{v:"Total",bold:true},"",...X.tot.map((v,g)=>({v:v??"",bold:true,color:win(v,Yt.tot[g])?GREEN:INK})),{v:done?sx:"",bold:true,color:done&&sx>sy?GREEN:INK}],fill:HEAD}]; };
+      return [...X.rows.map(r=>({cells:[{v:r.abs?r.roster+" (absent)":r.sub?r.name+" (sub)":r.name,color:r.abs||r.vac?GREY:INK},r.hcp,...r.gs.map(v=>v??""),{v:ser(r),bold:true},{v:serH(r),bold:true}]})),
+        {cells:[{v:"Scratch",color:GREY},"",...X.scr.map(v=>v??""),sum(X.scr),""],color:GREY},
+        {cells:[{v:"Handicap",color:GREY},"",...X.scr.map(()=>X.hc),X.hc*G,""],color:GREY},
+        {cells:[{v:"Total",bold:true},"",...X.tot.map((v,g)=>({v:v??"",bold:true,color:win(v,Yt.tot[g])?GREEN:INK})),{v:done?sx:"",bold:true,color:done&&sx>sy?GREEN:INK},""],fill:HEAD}]; };
     for(const m of weekDetail(w)){ const est=(m.A.rows.length+5)*15+30; if(y+est>doc.ch){ doc.newPage(); y=0; }
       doc.text(0,y+12,`${m.A.t.name}  ${fmt(m.pa)}   vs   ${fmt(m.pb)}  ${m.B.t.name}${m.done?"":"  (in progress)"}`,{size:11,bold:true}); y+=18;
       const a=pdfTable(doc,0,y,half,cols,side(m.A,m.B,m.done,m.sa,m.sb),{size:8.5,title:m.A.t.name});
@@ -645,6 +713,7 @@ function reportPdf(kind,w){
 }
 function exportPdf(kind){
   if(kind==="recap"){ if(!recapWeek) return toast("Enter a week of scores first."); return dl(`${slug()}-week-${recapWeek}-recap.pdf`,recapPdfDoc(recapWeek).bytes()); }
+  if(kind==="sheet"){ if(!recapWeek) return toast("Enter a week of scores first."); return dl(`${slug()}-week-${recapWeek}-standings.pdf`,standingsSheetDoc(recapWeek).bytes()); }
   const names={standings:"standings",averages:"averages",highs:"high-scores",results:"week-"+recapWeek+"-results",scores:"all-scores"};
   if((kind==="results")&&!recapWeek) return toast("Enter a week of scores first.");
   return dl(`${slug()}-${names[kind]}.pdf`,reportPdf(kind,recapWeek).bytes());
@@ -716,8 +785,8 @@ function renderExport(S){
    <p class="note">Every report downloads as a PDF. Open it to print, or email or text it to the league. The weekly recap always fits on one page.</p>
    <div class="row"><label class="f" style="flex-direction:row;align-items:center;gap:8px">Week <select id="rw" aria-label="Report week">${wks.length?wks.map(w=>`<option value="${w}" ${w===recapWeek?"selected":""}>Week ${w}${weeks[w]?.date?" · "+esc(weeks[w].date):""}</option>`).join(""):"<option>No weeks bowled yet</option>"}</select></label></div>
    <div class="grid2">
-    <div class="card sec"><h3>For the selected week</h3><div class="row"><button class="btn" data-pdf="recap" ${wks.length?"":"disabled"}>Weekly recap (1 page)</button><button class="btn ghost" data-pdf="results" ${wks.length?"":"disabled"}>Weekly results</button></div></div>
-    <div class="card sec"><h3>Season reports</h3><div class="row"><button class="btn ghost" data-pdf="standings">Standings</button><button class="btn ghost" data-pdf="averages">Averages &amp; handicaps</button><button class="btn ghost" data-pdf="highs">High scores</button><button class="btn ghost" data-pdf="scores">Every score</button></div></div>
+    <div class="card sec"><h3>For the selected week</h3><div class="row"><button class="btn" data-pdf="sheet" ${wks.length?"":"disabled"}>Standings sheet</button><button class="btn ghost" data-pdf="recap" ${wks.length?"":"disabled"}>Weekly recap (1 page)</button><button class="btn ghost" data-pdf="results" ${wks.length?"":"disabled"}>Weekly results</button></div></div>
+    <div class="card sec"><h3>Season reports</h3><div class="row"><button class="btn ghost" data-pdf="averages">Averages &amp; handicaps</button><button class="btn ghost" data-pdf="highs">High scores</button><button class="btn ghost" data-pdf="scores">Every score</button></div></div>
    </div>
    ${wks.length?`<h3>Recap preview</h3><div class="tbl"><div class="rc" id="recapPrev"></div></div>`:`<div class="card empty">Enter a week of scores to make reports.</div>`}</section>
   <section class="sec"><h2>Export Data</h2><div class="grid2">
@@ -835,7 +904,8 @@ async function ghPublish(){
     const vman={id:"./",name:config.name,short_name:(n=>{if(n.length<=12)return n;let o="";for(const w of n.split(/\s+/)){if((o+" "+w).trim().length>12)break;o=(o+" "+w).trim();}return o||n.slice(0,12);})(config.name),description:"Standings, averages and high scores",start_url:"./",scope:"./",display:"standalone",background_color:"#1d5aa0",theme_color:"#1d5aa0",
       icons:[{src:"icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},{src:"icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"}]};
     await ghPut("viewer.webmanifest",b64(JSON.stringify(vman,null,1)),"Home-screen settings for bowlers",br);
-    if(last){ setWebStatus("Publishing printable recap…"); const pb=recapPdfDoc(last).bytes(); let bin=""; for(let i=0;i<pb.length;i+=0x8000) bin+=String.fromCharCode(...pb.subarray(i,i+0x8000)); await ghPut("recap.pdf",btoa(bin),`Week ${last} recap`,br); }
+    if(last){ setWebStatus("Publishing printable recap…"); const pb=recapPdfDoc(last).bytes(); let bin=""; for(let i=0;i<pb.length;i+=0x8000) bin+=String.fromCharCode(...pb.subarray(i,i+0x8000)); await ghPut("recap.pdf",btoa(bin),`Week ${last} recap`,br);
+      setWebStatus("Publishing standings sheet…"); const sb=standingsSheetDoc(last).bytes(); let bin2=""; for(let i=0;i<sb.length;i+=0x8000) bin2+=String.fromCharCode(...sb.subarray(i,i+0x8000)); await ghPut("standings.pdf",btoa(bin2),`Week ${last} standings sheet`,br); }
     setWebStatus("Saving online backup…"); await ghPut("league-backup.json",b64(backupData()),`Backup ${stamp}`,br);
     if(s.pwa!==2){ setWebStatus("Setting up the installable app…");
       const man={id:"app.html",name:"League Secretary",short_name:"League",description:"Bowling league scores, averages and handicaps",start_url:"app.html",scope:"./",display:"standalone",
@@ -900,7 +970,7 @@ function publicPage(){
 nav.tabs a.rc-link{margin-left:auto}
 </style></head><body>
 <header class="band"><div class="wrap"><div class="brand"><h1 class="crest"><span class="wl">${esc(`Welcome to the ${config.season||""}`.trim())}</span><span class="logo">${document.querySelector(".logo").innerHTML}</span><span class="bl">Bowling League</span></h1><span class="meta">${esc(meta)}</span></div>
-<nav class="tabs" role="tablist">${Object.keys(names).map((k,i)=>`<button role="tab" data-tab="${k}" aria-selected="${i===0}">${names[k]}</button>`).join("")}${last?'<a class="rc-link" href="recap.pdf">Printable Recap (PDF)</a>':""}</nav></div></header>
+<nav class="tabs" role="tablist">${Object.keys(names).map((k,i)=>`<button role="tab" data-tab="${k}" aria-selected="${i===0}">${names[k]}</button>`).join("")}${last?'<a class="rc-link" href="standings.pdf">Standings Sheet (PDF)</a><a href="recap.pdf">Recap (PDF)</a>':""}</nav></div></header>
 <main><div class="wrap">${Object.keys(panels).map((k,i)=>`<div class="sec" role="tabpanel" data-panel="${k}" ${i===0?"":"hidden"}>${panels[k]}</div>`).join("")}
 <p class="note">Updated ${esc(new Date().toLocaleString([], {dateStyle:"medium",timeStyle:"short"}))}. Add this page to your home screen: in Chrome tap ⋮ then Install app; on iPhone tap Share then Add to Home Screen.</p></div></main>
 <script>
