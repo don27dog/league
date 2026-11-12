@@ -90,6 +90,10 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--lane)}
 tr.tot td{font-weight:700;background:var(--soft)}
 tr.abs td{color:var(--muted)}
 td.mv{white-space:nowrap}
+input.pname{width:100%;min-width:14rem;font-size:1rem;padding:9px 10px}
+.grid2.teamgrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,660px),1fr))}
+.teamgrid td:first-child{width:55%}
+@media (max-width:520px){input.pname{min-width:10rem}}
 .mvb{font:600 .8rem var(--body);width:2.2em;height:2.2em;margin-left:4px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--lane);cursor:pointer}
 .mvb:disabled{opacity:.3;cursor:default}
 tr.sub-tot td{color:var(--muted);font-size:.85rem}
@@ -282,6 +286,15 @@ function render(){
   else if(tab==="web") renderWeb();
 }
 
+function teamRosters(S,title="Team Rosters"){
+  const wks=S.weeksBowled, w=wks[wks.length-1]||0;
+  const rrow=p=>{ const x=S.players[p.id]; if(isVac(p,w)) return `<tr><td class="l muted">Vacant</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    return `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${x.avg?(x.est?x.avg+"e":x.avg):""}</td><td>${x.avg?x.hcp:""}</td><td>${x.pins?x.pins.toLocaleString():""}</td><td>${x.games||""}</td><td>${x.hg||""}</td><td>${x.hs||""}</td></tr>`; };
+  const rtab=(title,ps)=>`<div><div class="sheet-sub">${esc(title)}</div><div class="tbl plain"><table><thead><tr><th class="l">Name</th><th>Avg</th><th>Hdcp</th><th>Total Pins</th><th>Games</th><th>High Game</th><th>High Series</th></tr></thead><tbody>${ps.map(rrow).join("")}</tbody></table></div></div>`;
+  const usedSubs=config.subs.filter(s=>S.players[s.id].games>0);
+  return `<h2 class="sh">${esc(title)}</h2><div class="grid2 ros">${config.teams.map((t,i)=>rtab(`${i+1} - ${t.name}`,t.players)).join("")}${usedSubs.length?rtab("Substitutes",usedSubs):""}</div>
+    <p class="note">${w?`Season stats through week ${w}. Avg and Hdcp are for week ${w+1}.`:"No games bowled yet. Avg and Hdcp show starting averages."} “e” = average not yet established (fewer than 3 games). High game and series are scratch.</p>`;
+}
 function standings(S){
   // laid out like the printed Standings sheet
   const wks=S.weeksBowled, w=wks[wks.length-1], G=config.gamesPerWeek;
@@ -302,12 +315,7 @@ function standings(S){
   const nm=w<config.weeks?((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b):[];
   const review=`<h2 class="sh">Review of Week ${w} <small>team totals with handicap</small></h2><div class="grid2">${mtab("A")}${mtab("B")}</div>
     ${nm.length?`<p class="note">Week ${w+1}: ${nm.map(x=>`${tnum(x.a)}-${esc(tname(x.a))} vs ${tnum(x.b)}-${esc(tname(x.b))}`).join(" · ")}</p>`:""}`;
-  const rrow=p=>{ const x=S.players[p.id]; if(isVac(p,w)) return `<tr><td class="l muted">Vacant</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
-    return `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${x.avg?(x.est?x.avg+"e":x.avg):""}</td><td>${x.avg?x.hcp:""}</td><td>${x.pins?x.pins.toLocaleString():""}</td><td>${x.games||""}</td><td>${x.hg||""}</td><td>${x.hs||""}</td></tr>`; };
-  const rtab=(title,ps)=>`<div><div class="sheet-sub">${esc(title)}</div><div class="tbl plain"><table><thead><tr><th class="l">Name</th><th>Avg</th><th>Hdcp</th><th>Total Pins</th><th>Games</th><th>High Game</th><th>High Series</th></tr></thead><tbody>${ps.map(rrow).join("")}</tbody></table></div></div>`;
-  const usedSubs=config.subs.filter(s=>S.players[s.id].games>0);
-  const rosters=`<h2 class="sh">Team Rosters</h2><div class="grid2 ros">${config.teams.map((t,i)=>rtab(`${i+1} - ${t.name}`,t.players)).join("")}${usedSubs.length?rtab("Substitutes",usedSubs):""}</div>
-    <p class="note">Season stats through week ${w}. Avg and Hdcp are for week ${w+1}. “e” = average not yet established (fewer than 3 games). High game and series are scratch.</p>`;
+  const rosters=teamRosters(S);
   const cats=[["Scratch Game","sg"],["Scratch Series","ss"],["Hdcp Game","hg"],["Hdcp Series","hs"],["Team Scratch Game","tsg"],["Team Scratch Series","tss"],["Team Hdcp Game","thg"],["Team Hdcp Series","ths"]];
   const cell=x=>x?`${esc(x.name)} <b>${x.v}</b>`:"";
   const highs=`<h2 class="sh">High Scores</h2><div class="tbl plain"><table><thead><tr><th class="l"></th><th class="l">1st</th><th class="l">2nd</th><th class="l">3rd</th></tr></thead><tbody>
@@ -416,13 +424,15 @@ function updateTotals(){
 }
 
 // ---------- teams ----------
+let teamsEdit=false;
 function renderTeams(){
   const dis=canWrite?"":"disabled";
-  $("#view").innerHTML=`<section class="sec"><div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2><button class="btn" id="saveTeams" ${dis}>Save teams</button></div>
+  if(!teamsEdit){ $("#view").innerHTML=`<section class="sec sheet"><div class="row" style="justify-content:space-between"><h2>Teams &amp; Bowlers</h2>${canWrite?'<button class="btn" id="editTeams">Edit teams &amp; bowlers</button>':""}</div>${teamRosters(compute(),"Team Rosters")}</section>`; return; }
+  $("#view").innerHTML=`<section class="sec"><div class="row" style="justify-content:space-between"><h2>Edit Teams &amp; Bowlers</h2><span class="row"><button class="btn ghost" id="doneTeams">Back to rosters</button><button class="btn" id="saveTeams" ${dis}>Save teams</button></span></div>
   <p class="note">Rename teams and bowlers and set each bowler's starting average (last season's or establishing average). Every bowler establishes an average after 3 games, and that average sets their handicap for the week it is established. The starting average is used only until then, for example for a blind score if they miss their first week. Use the arrows to set each team's bowling order. It sets the order on the score sheet, weekly results and recap, and past scores stay with each bowler. Tick <b>Vacant</b> for an empty spot. When someone fills it, untick Vacant, enter their name and starting average, and set <b>Starts Wk</b> to their first week: earlier weeks keep the vacant scores.</p>
-  <div class="grid2">${config.teams.map((t,i)=>`<div class="card sec"><label class="f">Team ${i+1}<input id="tn_${t.id}" value="${esc(t.name)}" ${dis}></label>
+  <div class="grid2 teamgrid">${config.teams.map((t,i)=>`<div class="card sec"><label class="f">Team ${i+1}<input id="tn_${t.id}" value="${esc(t.name)}" ${dis}></label>
     <div class="tbl" style="border:0"><table><thead><tr><th>Bowler</th><th>Starting Avg</th><th>Vacant</th><th>Starts Wk</th><th>Order</th></tr></thead><tbody>
-    ${t.players.map((p,j)=>`<tr><td class="l"><input id="pn_${p.id}" value="${esc(p.name)}" style="width:100%" ${dis} aria-label="Bowler name"></td><td><input id="pa_${p.id}" class="g" style="width:4.5em" inputmode="numeric" value="${p.startAvg||""}" ${dis} aria-label="Starting average"></td>
+    ${t.players.map((p,j)=>`<tr><td class="l"><input id="pn_${p.id}" class="pname" value="${esc(p.name)}" ${dis} aria-label="Bowler name"></td><td><input id="pa_${p.id}" class="g" style="width:4.5em" inputmode="numeric" value="${p.startAvg||""}" ${dis} aria-label="Starting average"></td>
     <td style="text-align:center"><input type="checkbox" id="pv_${p.id}" ${p.vacant?"checked":""} ${dis} aria-label="Spot is vacant"></td>
     <td><input id="ps_${p.id}" class="g" style="width:3.6em" inputmode="numeric" value="${p.startWeek>1?p.startWeek:""}" placeholder="1" ${dis||(p.vacant?"disabled":"")} aria-label="First week this bowler bowls"></td>
     <td class="mv"><button class="mvb" data-mv="${t.id}|${j}|-1" ${dis||(j===0?"disabled":"")} aria-label="Move ${esc(p.name)} up">▲</button><button class="mvb" data-mv="${t.id}|${j}|1" ${dis||(j===t.players.length-1?"disabled":"")} aria-label="Move ${esc(p.name)} down">▼</button></td></tr>`).join("")}
@@ -631,8 +641,8 @@ const pdfFooter=()=>`${config.name} · printed ${new Date().toLocaleDateString()
 const wkLabel=w=>`Week ${w}${weeks[w]?.date?" · "+weeks[w].date:""}`;
 function standingsRows(S){ return Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp).map((t,i)=>({cells:[{v:i+1},{v:t.name,bold:true},{v:fmt(t.won),bold:true},fmt(t.lost),t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1)+"%":"",t.scratch.toLocaleString(),t.hdcp.toLocaleString()]})); }
 const STAND_COLS=[{label:"",w:18,align:"right"},{label:"Team"},{label:"Won",w:34,align:"right"},{label:"Lost",w:34,align:"right"},{label:"Pct",w:40,align:"right"},{label:"Scratch",w:52,align:"right"},{label:"+Hdcp",w:52,align:"right"}];
-function resultsRows(S,w){ const tn=id=>config.teams.find(t=>t.id===id)?.name||""; return (S.results[w]||[]).map(r=>({cells:[{v:tn(r.a),bold:r.pa>r.pb},{v:fmt(r.pa),bold:true},r.ta.toLocaleString(),{v:tn(r.b),bold:r.pb>r.pa},{v:fmt(r.pb),bold:true},r.tb.toLocaleString()]})); }
-const RES_COLS=[{label:"Team"},{label:"Pts",w:26,align:"right"},{label:"Total",w:40,align:"right"},{label:"Opponent"},{label:"Pts",w:26,align:"right"},{label:"Total",w:40,align:"right"}];
+function resultsRows(S,w){ const tn=id=>config.teams.find(t=>t.id===id)?.name||""; return (S.results[w]||[]).map(r=>({cells:[{v:tn(r.a),bold:r.pa>r.pb},{v:fmt(r.pa),bold:true},r.ta.toLocaleString(),{v:"vs",align:"center",color:GREY},{v:tn(r.b),bold:r.pb>r.pa},{v:fmt(r.pb),bold:true},r.tb.toLocaleString()]})); }
+const RES_COLS=[{label:"Team"},{label:"Pts",w:24,align:"right"},{label:"Total",w:38,align:"right"},{label:"",w:20,align:"center"},{label:"Team"},{label:"Pts",w:24,align:"right"},{label:"Total",w:38,align:"right"}];
 const HS_CATS=[["Game","sg"],["Series","ss"],["Game hdcp","hg"],["Series hdcp","hs"],["Team game","tsg"],["Team series","tss"],["Team game hdcp","thg"],["Team series hdcp","ths"]];
 function highsTable(doc,y,S,w){
   const Wk=w?S.weekly[w]:null, cell=(x,season)=>x?{v:x.name+(season?` (w${x.week})`:""),r:x.v}:"";
@@ -661,14 +671,30 @@ function bowlerTables(doc,y,S,w,cols2=2,size=8){
     y=maxY+6; }
   return y;
 }
+function matchCols(G){ return [{label:"Bowler"},{label:"Hdcp",w:30,align:"right"},...[...Array(G)].map((_,g)=>({label:"G"+(g+1),w:25,align:"right"})),{label:"Series",w:36,align:"right"},{label:"Ser+Hdcp",w:50,align:"right"}]; }
+function matchSideRows(X,Yt,done,sx,sy){ const G=config.gamesPerWeek;
+  const ser=r=>r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):"", serH=r=>{ const n=r.gs.filter(v=>v!=null).length; return n?ser(r)+r.hcp*n:""; };
+  const sum=a=>a.every(v=>v!=null)?a.reduce((s,v)=>s+v,0):""; const win=(a,b)=>a!=null&&b!=null&&a>b;
+  return [...X.rows.map(r=>({cells:[{v:r.abs?r.roster+" (absent)":r.sub?r.name+" (sub)":r.name,color:r.abs||r.vac?GREY:INK},r.hcp,...r.gs.map(v=>v??""),{v:ser(r),bold:true},{v:serH(r),bold:true}]})),
+        {cells:[{v:"Scratch",color:GREY},"",...X.scr.map(v=>v??""),sum(X.scr),""],color:GREY},
+        {cells:[{v:"Handicap",color:GREY},"",...X.scr.map(()=>X.hc),X.hc*G,""],color:GREY},
+        {cells:[{v:"Total",bold:true},"",...X.tot.map((v,g)=>({v:v??"",bold:true,color:win(v,Yt.tot[g])?GREEN:INK})),{v:done?sx:"",bold:true,color:done&&sx>sy?GREEN:INK},""],fill:HEAD}]; }
 function recapPdfDoc(w){
   const S=computeThrough(w), doc=new PdfDoc({footer:pdfFooter()});
-  let y=pdfTitle(doc,`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+weeks[w].date:""} · Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?", max "+config.hcpMax:""} · Avg and Hdcp are for next week`);
+  let y=pdfTitle(doc,`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+weeks[w].date:""} · Handicap ${config.hcpPct}% of ${config.hcpBasis}${config.hcpMax>0?", max "+config.hcpMax:""} · Hdcp shown is each bowler's handicap for that week`);
   const half=(doc.cw-14)/2;
   const y1=pdfTable(doc,0,pdfH2(doc,0,y,half,"Standings"),half,STAND_COLS.filter((_,i)=>i!==4),standingsRows(S).map(r=>({cells:r.cells.filter((_,i)=>i!==4)})),{size:8});
   const y2=pdfTable(doc,half+14,pdfH2(doc,half+14,y,half,"Week "+w+" Results"),half,RES_COLS,resultsRows(S,w),{size:8});
   y=Math.max(y1,y2)+6;
-  y=bowlerTables(doc,pdfH2(doc,0,y,doc.cw,"Bowlers"),S,w)+2;
+  y=pdfH2(doc,0,y,doc.cw,"Week "+w+" Matches");
+  const G=config.gamesPerWeek, mc=matchCols(G);
+  for(const m of weekDetail(w)){
+    doc.text(0,y+10,`${m.A.t.name}  ${fmt(m.pa)}`,{size:9.5,bold:true}); const lw=textW(`${m.A.t.name}  ${fmt(m.pa)}`,9.5,true);
+    doc.text(lw+10,y+10,"vs",{size:9.5,bold:true,color:GREY}); doc.text(lw+30,y+10,`${fmt(m.pb)}  ${m.B.t.name}${m.done?"":"  (in progress)"}`,{size:9.5,bold:true}); y+=14;
+    const a=pdfTable(doc,0,y,half,mc,matchSideRows(m.A,m.B,m.done,m.sa,m.sb),{size:8,title:m.A.t.name,titleInHead:true});
+    const b=pdfTable(doc,half+14,y,half,mc,matchSideRows(m.B,m.A,m.done,m.sb,m.sa),{size:8,title:m.B.t.name,titleInHead:true});
+    y=Math.max(a,b)+8; }
+  y+=2;
   y=highsTable(doc,pdfH2(doc,0,y,doc.cw,"High Scores"),S,w);
   doc.fitPage(y); return doc;
 }
@@ -743,14 +769,7 @@ function reportPdf(kind,w){
       ps.map((p,i)=>({cells:[i+1,{v:p.name,bold:true},p.team,p.games,p.pins.toLocaleString(),{v:p.avg?(p.est?p.avg+" est":p.avg):"",bold:true},{v:p.avg?p.hcp:"",bold:true},p.hg||"",p.hs||""]})),{size:9,paginate:true}); }
   else if(kind==="highs"){ y=pdfTitle(doc,`High scores · top 3 per list, each bowler or team once${w?" · "+wkLabel(w):""}`); highsTable(doc,y,S,w); }
   else if(kind==="results"){ y=pdfTitle(doc,`Weekly results · ${wkLabel(w)} · green totals won that game`); const G=config.gamesPerWeek;
-    const cols=[{label:"Bowler"},{label:"Hdcp",w:30,align:"right"},...[...Array(G)].map((_,g)=>({label:"G"+(g+1),w:25,align:"right"})),{label:"Series",w:36,align:"right"},{label:"Ser+Hdcp",w:50,align:"right"}];
-    const ser=r=>r.gs.some(v=>v!=null)?r.gs.reduce((s,v)=>s+(v??0),0):"", serH=r=>{ const n=r.gs.filter(v=>v!=null).length; return n?ser(r)+r.hcp*n:""; };
-    const half=(doc.cw-14)/2;
-    const side=(X,Yt,done,sx,sy)=>{ const sum=a=>a.every(v=>v!=null)?a.reduce((s,v)=>s+v,0):""; const win=(a,b)=>a!=null&&b!=null&&a>b;
-      return [...X.rows.map(r=>({cells:[{v:r.abs?r.roster+" (absent)":r.sub?r.name+" (sub)":r.name,color:r.abs||r.vac?GREY:INK},r.hcp,...r.gs.map(v=>v??""),{v:ser(r),bold:true},{v:serH(r),bold:true}]})),
-        {cells:[{v:"Scratch",color:GREY},"",...X.scr.map(v=>v??""),sum(X.scr),""],color:GREY},
-        {cells:[{v:"Handicap",color:GREY},"",...X.scr.map(()=>X.hc),X.hc*G,""],color:GREY},
-        {cells:[{v:"Total",bold:true},"",...X.tot.map((v,g)=>({v:v??"",bold:true,color:win(v,Yt.tot[g])?GREEN:INK})),{v:done?sx:"",bold:true,color:done&&sx>sy?GREEN:INK},""],fill:HEAD}]; };
+    const cols=matchCols(G), side=matchSideRows, half=(doc.cw-14)/2;
     for(const m of weekDetail(w)){ const est=(m.A.rows.length+5)*15+30; if(y+est>doc.ch){ doc.newPage(); y=0; }
       doc.text(0,y+12,`${m.A.t.name}  ${fmt(m.pa)}   vs   ${fmt(m.pb)}  ${m.B.t.name}${m.done?"":"  (in progress)"}`,{size:11,bold:true}); y+=18;
       const a=pdfTable(doc,0,y,half,cols,side(m.A,m.B,m.done,m.sa,m.sb),{size:8.5,title:m.A.t.name});
@@ -1031,8 +1050,7 @@ function publicPage(){
       ${wks.length?`<section class="sec"><div class="row"><h2>Weekly Highs</h2>${weekSelect("selH")}</div>
       ${wks.map(w=>`<div class="sec" data-group="selH" data-w="${w}" ${w===last?"":"hidden"}><h3>Individual</h3><div class="highs">${ind(S.weekly[w])}</div><h3>Team</h3><div class="highs">${tm(S.weekly[w])}</div></div>`).join("")}
       <p class="note">Each bowler or team appears once per list. Individual series counts only bowlers who bowled every game; blind scores are left out.</p></section>`:""}`,
-    teams:`<section class="sec"><h2>Teams</h2><div class="grid2">${config.teams.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><table><tbody>${t.players.map(p=>{const x=S.players[p.id]; return p.vacant?`<tr><td class="l muted">Vacant</td><td></td></tr>`:`<tr><td class="l">${esc(p.name)}</td><td>${x.avg?`avg ${x.avg} · hdcp ${x.hcp}`:""}</td></tr>`;}).join("")}</tbody></table></div>`).join("")}</div>
-      ${config.subs.length?`<div class="card"><h3>Subs</h3><table><tbody>${config.subs.map(s=>{const x=S.players[s.id]; return `<tr><td class="l">${esc(s.name)}</td><td>${x.avg?`avg ${x.avg} · hdcp ${x.hcp}`:""}</td></tr>`;}).join("")}</tbody></table></div>`:""}</section>`
+    teams:`<section class="sec sheet">${teamRosters(S,"Team Rosters")}</section>`
   };
   const names={standings:"Standings",results:"Weekly Results",averages:"Averages",highs:"High Scores",teams:"Teams"};
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -1109,7 +1127,7 @@ async function saveWeek(){
 }
 
 // ---------- events ----------
-$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]"); if(!b) return; tab=b.dataset.tab; render();});
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]"); if(!b) return; if(b.dataset.tab!=="teams") teamsEdit=false; tab=b.dataset.tab; render();});
 document.addEventListener("input",e=>{
   const t=e.target;
   if(t.matches("input.g[data-p]")){ const v=t.value.trim(); const ok=v===""||(/^\d{1,3}$/.test(v)&&+v<=300); t.classList.toggle("bad",!ok);
@@ -1155,6 +1173,8 @@ document.addEventListener("click",async e=>{
   else if(t.dataset.print) printReport(t.dataset.print);
   else if(t.dataset.share) shareReport(t.dataset.share);
   else if(t.dataset.rep){ reportView=t.dataset.rep; render(); }
+  else if(t.id==="editTeams"){ teamsEdit=true; render(); }
+  else if(t.id==="doneTeams"){ teamsEdit=false; render(); }
   else if(t.id==="saveTeams"){ await saveConfig(collectTeams(),"Teams saved."); }
   else if(t.id==="addSub"){ const c=collectTeams(); c.subs.push({id:"s"+Date.now().toString(36),name:`Sub ${c.subs.length+1}`,startAvg:0}); await saveConfig(c,"Sub added. Rename them below."); }
   else if(t.dataset.mv){ const [tid,j,d]=t.dataset.mv.split("|"); const c=collectTeams(); const ps=c.teams.find(x=>x.id===tid).players; const i=+j, k=i+Number(d);
