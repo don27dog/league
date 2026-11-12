@@ -1,11 +1,12 @@
 {
  "app": "League Secretary",
  "format": 1,
- "exportedAt": "2026-11-08T07:12:40.556Z",
+ "exportedAt": "2026-11-12T03:23:59.933Z",
  "config": {
   "name": "Fishers Island Bowling League",
+  "season": "2026-2027",
   "teamsCount": 4,
-  "playersPerTeam": 4,
+  "playersPerTeam": 5,
   "weeks": 14,
   "gamesPerWeek": 3,
   "hcpBasis": 200,
@@ -14,6 +15,7 @@
   "ptsPerGame": 1,
   "ptsSeries": 1,
   "absentPenalty": 10,
+  "vacantScore": 150,
   "teams": [
    {
     "id": "t1",
@@ -22,22 +24,37 @@
      {
       "id": "t1p2",
       "name": "Todd",
-      "startAvg": 80
+      "startAvg": 90,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t1p4",
       "name": "John",
-      "startAvg": 76
+      "startAvg": 166,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t1p3",
       "name": "Joe",
-      "startAvg": 93
+      "startAvg": 82,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t1p1",
       "name": "Donnie",
-      "startAvg": 194
+      "startAvg": 205,
+      "vacant": false,
+      "startWeek": 0
+     },
+     {
+      "id": "t1p5",
+      "name": "Vacant",
+      "startAvg": 0,
+      "vacant": true,
+      "startWeek": 0
      }
     ]
    },
@@ -48,22 +65,37 @@
      {
       "id": "t2p4",
       "name": "David",
-      "startAvg": 98
+      "startAvg": 95,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t2p3",
       "name": "Sacco",
-      "startAvg": 106
+      "startAvg": 86,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t2p2",
       "name": "Ez",
-      "startAvg": 89
+      "startAvg": 113,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t2p1",
       "name": "Skinner",
-      "startAvg": 154
+      "startAvg": 143,
+      "vacant": false,
+      "startWeek": 0
+     },
+     {
+      "id": "t2p5",
+      "name": "Freddie",
+      "startAvg": 124,
+      "vacant": false,
+      "startWeek": 0
      }
     ]
    },
@@ -74,22 +106,37 @@
      {
       "id": "t3p1",
       "name": "Shannon",
-      "startAvg": 112
+      "startAvg": 103,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t3p2",
       "name": "Teddy",
-      "startAvg": 96
+      "startAvg": 96,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t3p3",
       "name": "Alex",
-      "startAvg": 79
+      "startAvg": 79,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t3p4",
       "name": "Lucas",
-      "startAvg": 114
+      "startAvg": 104,
+      "vacant": false,
+      "startWeek": 0
+     },
+     {
+      "id": "t3p5",
+      "name": "Vacant",
+      "startAvg": 0,
+      "vacant": true,
+      "startWeek": 0
      }
     ]
    },
@@ -100,22 +147,37 @@
      {
       "id": "t4p1",
       "name": "Caelan",
-      "startAvg": 80
+      "startAvg": 68,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t4p4",
       "name": "Emily",
-      "startAvg": 72
+      "startAvg": 73,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t4p2",
       "name": "Thomas",
-      "startAvg": 113
+      "startAvg": 113,
+      "vacant": false,
+      "startWeek": 0
      },
      {
       "id": "t4p3",
       "name": "Fergus",
-      "startAvg": 116
+      "startAvg": 88,
+      "vacant": false,
+      "startWeek": 0
+     },
+     {
+      "id": "t4p5",
+      "name": "Vacant",
+      "startAvg": 0,
+      "vacant": true,
+      "startWeek": 0
      }
     ]
    }
@@ -128,5 +190,203 @@
    }
   ]
  },
- "weeks": []
+ "weeks": [
+  {
+   "week": 1,
+   "date": "2026-11-11",
+   "matchups": [
+    {
+     "a": "t1",
+     "b": "t4"
+    },
+    {
+     "a": "t2",
+     "b": "t3"
+    }
+   ],
+   "games": {
+    "t1p2": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      89,
+      90,
+      91
+     ]
+    },
+    "t1p4": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      147,
+      184,
+      167
+     ]
+    },
+    "t1p3": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      56,
+      95,
+      95
+     ]
+    },
+    "t1p1": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      171,
+      247,
+      197
+     ]
+    },
+    "t4p1": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      73,
+      63,
+      68
+     ]
+    },
+    "t4p4": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      90,
+      69,
+      60
+     ]
+    },
+    "t4p2": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      113,
+      122,
+      104
+     ]
+    },
+    "t4p3": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      76,
+      86,
+      102
+     ]
+    },
+    "t2p4": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      98,
+      124,
+      64
+     ]
+    },
+    "t2p3": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      103,
+      69,
+      88
+     ]
+    },
+    "t2p2": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      111,
+      132,
+      98
+     ]
+    },
+    "t2p1": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      151,
+      155,
+      123
+     ]
+    },
+    "t3p1": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      123,
+      100,
+      87
+     ]
+    },
+    "t3p2": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      111,
+      82,
+      96
+     ]
+    },
+    "t3p3": {
+     "abs": false,
+     "sub": "smw6v5js3",
+     "g": [
+      123,
+      122,
+      130
+     ]
+    },
+    "t3p4": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      101,
+      110,
+      102
+     ]
+    },
+    "t1p5": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      200,
+      200,
+      200
+     ]
+    },
+    "t4p5": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      200,
+      200,
+      200
+     ]
+    },
+    "t2p5": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      121,
+      132,
+      118
+     ]
+    },
+    "t3p5": {
+     "abs": false,
+     "sub": null,
+     "g": [
+      200,
+      200,
+      200
+     ]
+    }
+   },
+   "updatedAt": "2026-11-12T03:19:41.632Z"
+  }
+ ]
 }
