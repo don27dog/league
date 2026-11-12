@@ -1096,6 +1096,7 @@ function renderWeb(){
    :`<div class="banner">Connect your GitHub account below to publish standings for your bowlers. Follow the setup steps once.</div>`}
   <p id="ghStatus" class="note" role="status"></p>
   <div class="grid2">
+   ${srvCard()}
    <div class="card sec"><h3>GitHub connection</h3><div class="formgrid">
     <label class="f">GitHub username<input id="ghOwner" autocomplete="off" autocapitalize="off" value="${esc(s.owner||"")}"></label>
     <label class="f">Repository name<input id="ghRepo" autocomplete="off" autocapitalize="off" value="${esc(s.repo||"league")}"></label>
@@ -1174,6 +1175,8 @@ document.addEventListener("click",async e=>{
   else if(t.id==="ghSave") ghSaveSettings();
   else if(t.id==="ghPublish") ghPublish();
   else if(t.id==="ghRestore") ghRestore();
+  else if(t.id==="svSave") srvConnect();
+  else if(t.id==="svForget"){ srvSet({}); srvState=""; srvRev=null; toast("This device is disconnected from the server. The league stays on this device."); render(); }
   else if(t.id==="ghForget"){ const x=ghSettings(); delete x.token; ghStore(x); toast("Token removed from this device."); render(); }
   else if(t.dataset.pdf) exportPdf(t.dataset.pdf);
   else if(t.dataset.print) printReport(t.dataset.print);
@@ -1199,14 +1202,69 @@ function notify(){ setTimeout(()=>{ listeners.doc&&listeners.doc(docSnap()); lis
 function persist(){ try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(e){ toast("Couldn't save on this device. Download a backup now."); throw e; } }
 const local={
   doc(path){ const [c,id]=path.split("/"); return {
-    async set(d){ if(c==="league") store.config=clone(d); else store.weeks[id]=clone(d); persist(); notify(); },
-    async delete(){ if(c==="league") store.config=null; else delete store.weeks[id]; persist(); notify(); },
+    async set(d){ if(srvOn()) await srvWrite("PUT",path,d); if(c==="league") store.config=clone(d); else store.weeks[id]=clone(d); persist(); notify(); },
+    async delete(){ if(srvOn()) await srvWrite("DELETE",path); if(c==="league") store.config=null; else delete store.weeks[id]; persist(); notify(); },
     onSnapshot(next){ listeners.doc=next; next(docSnap()); return ()=>{}; } }; },
   collection(){ return { onSnapshot(next){ listeners.col=next; next(colSnap()); return ()=>{}; } }; }
 };
 window.addEventListener("storage",e=>{ if(e.key===LS){ store=loadStore(); notify(); } });
+// ---------- league server (Cloudflare) ----------
+const SK="leagueSecretary.server.v1";
+function srvGet(){ try{ return JSON.parse(localStorage.getItem(SK))||{}; }catch(_){ return {}; } }
+function srvSet(x){ try{ localStorage.setItem(SK,JSON.stringify(x)); }catch(_){} }
+const srvOn=()=>{ const x=srvGet(); return !!(x.url&&x.pw); };
+function srvFetch(path,opts={}){ const x=srvGet();
+  return fetch(x.url+path,{...opts,cache:"no-store",headers:{Authorization:"Bearer "+x.pw,...(opts.body?{"Content-Type":"application/json"}:{})}}); }
+async function srvWrite(method,path,body){ const r=await srvFetch("/api/doc/"+path,{method,body:body===undefined?undefined:JSON.stringify(body)});
+  if(!r.ok){ srvState=r.status===401?"badpw":"offline"; throw new Error("server "+r.status); } }
+let srvRev=null, srvState="";
+// check the server every few seconds so scores sent from the alley show up here
+async function srvPull(force){
+  if(!srvOn()) return;
+  const a=document.activeElement;
+  if(!force&&tab!=="scores"&&a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;   // don't redraw while someone is typing
+  try{ const r=await fetch(srvGet().url+"/api/league",{cache:"no-store"}); if(!r.ok) throw 0; const j=await r.json();
+    const was=srvState; srvState="ok"; if(was&&was!=="ok"&&tab==="web") render();
+    if(j.rev===srvRev&&!force) return; srvRev=j.rev;
+    if(!j.config) return;
+    const cfgChanged=JSON.stringify(j.config)!==JSON.stringify(store.config);
+    store={config:j.config,weeks:Object.fromEntries((j.weeks||[]).map(w=>["w"+String(w.week).padStart(2,"0"),w]))};
+    try{ localStorage.setItem(LS,JSON.stringify(store)); }catch(_){}
+    setTimeout(()=>{ if(cfgChanged&&listeners.doc) listeners.doc(docSnap()); listeners.col&&listeners.col(colSnap()); },0);
+  }catch(_){ const was=srvState; srvState="offline"; if(was!=="offline"&&tab==="web") render(); }
+}
+setInterval(()=>{ if(document.visibilityState==="visible") srvPull(); },5000);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") srvPull(); });
+function srvCard(){ const x=srvGet(), on=srvOn();
+  const st=!on?"Not connected. The league is saved only on this device."
+    :srvState==="offline"?"Connected, but the server can't be reached right now. Saving won't work until it's back."
+    :srvState==="badpw"?"The server didn't accept the saved password. Enter it again and tap Update connection."
+    :"Connected. The league is saved on the server, and scores sent from the score sheets appear in Enter Scores automatically.";
+  return `<div class="card sec"><h3>League server</h3><p class="note"><b>${st}</b></p><div class="formgrid">
+    <label class="f" style="grid-column:1/-1">Server address<input id="svUrl" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://fi-league.your-name.workers.dev" value="${esc(x.url||"")}"></label>
+    <label class="f" style="grid-column:1/-1">Secretary password<input id="svPw" type="password" autocomplete="off" placeholder="${x.pw?"Saved. Type a new one to replace it.":""}"></label></div>
+    <div class="row"><button class="btn ${on?"ghost":""}" id="svSave">${on?"Update connection":"Connect"}</button>${on?'<button class="btn danger" id="svForget">Disconnect this device</button>':""}</div>
+    <p class="note">The password is kept only on this device. Score sheets use the league PIN instead, which can only add scores for the match being bowled that night.</p></div>`; }
+async function srvConnect(){
+  const url=($("#svUrl").value||"").trim().replace(/\/+$/,""), old=srvGet(), pw=$("#svPw").value||old.pw;
+  if(!/^https?:\/\/\S+$/.test(url)) return toast("Enter the server address, starting with https://");
+  if(!pw) return toast("Enter the secretary password.");
+  let r; try{ r=await fetch(url+"/api/auth/secretary",{headers:{Authorization:"Bearer "+pw},cache:"no-store"}); }catch(_){ return toast("Couldn't reach the server. Check the address."); }
+  if(r.status===401) return toast("That password isn't right.");
+  if(r.status===429) return toast("Too many wrong tries. Wait 15 minutes.");
+  if(!r.ok){ const j=await r.json().catch(()=>({})); return toast(j.error||`The server isn't set up correctly (${r.status}).`); }
+  srvSet({url,pw}); srvState="ok";
+  let j; try{ j=await (await fetch(url+"/api/league",{cache:"no-store"})).json(); }catch(_){ j={}; }
+  if(!j.config&&store.config){
+    const u=await srvFetch("/api/import",{method:"PUT",body:JSON.stringify({config:store.config,weeks:Object.values(store.weeks)})});
+    if(!u.ok) return toast("Connected, but copying the league to the server failed. Tap Connect again.");
+    toast("Connected. Your league is now saved on the server.");
+  } else toast(j.config?"Connected. Loaded the league from the server.":"Connected.");
+  srvRev=null; await srvPull(true); render();
+}
+
 function start(){
-  db=local; canWrite=true;
+  db=local; canWrite=true; srvPull(true);
   try{ navigator.storage?.persist?.().catch(()=>{}); }catch(_){}
   db.doc("league/config").onSnapshot(s=>{ loaded.config=true; config=s.exists?normalize(s.data()):null; if(tab!=="scores"||!draftDirty) render(); });
   db.collection("weeks").onSnapshot(s=>{ const w={}; s.docs.forEach(d=>{const x=d.data(); if(x&&x.week) w[x.week]=x;}); weeks=w; loaded.weeks=true;
