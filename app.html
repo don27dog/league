@@ -94,6 +94,17 @@ td.mv{white-space:nowrap}
 .mvb:disabled{opacity:.3;cursor:default}
 tr.sub-tot td{color:var(--muted);font-size:.85rem}
 td.win{color:var(--good);font-weight:800}
+.sheet{gap:10px}
+.sheet-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;font-size:.85rem;color:var(--muted)}
+.sheet-head b{font-family:var(--display);font-size:1.7rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink);line-height:1.1}
+h2.sh{font-size:1.1rem;border-bottom:2px solid var(--ink);padding-bottom:3px;margin-top:10px}
+h2.sh small{font:500 .8rem var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
+.sheet-sub{font-weight:700;margin:2px 0 2px}
+.grid2.ros{grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr))}
+.tbl.plain{border:0;border-radius:0;background:transparent}
+.tbl.plain th{background:transparent;color:var(--ink);border-bottom:2px solid var(--ink);text-transform:none;letter-spacing:0;font-size:.78rem;font-weight:700;padding:5px 8px}
+.tbl.plain td{padding:4px 8px;font-size:.88rem}
+.tbl.plain tr:last-child td{border-bottom:1px solid var(--line)}
 .match .tbl th,.match .tbl td{padding:7px 6px}
 .match .tbl th:first-child,.match .tbl td:first-child{padding-left:10px}
 .highs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
@@ -267,21 +278,37 @@ function render(){
 }
 
 function standings(S){
+  // laid out like the printed Standings sheet
+  const wks=S.weeksBowled, w=wks[wks.length-1], G=config.gamesPerWeek;
+  const tnum=id=>config.teams.findIndex(t=>t.id===id)+1, tname=id=>config.teams.find(t=>t.id===id)?.name||"";
+  const lw={}; if(w) for(const r of (S.results[w]||[])){ lw[r.a]=[r.pa,r.pb]; lw[r.b]=[r.pb,r.pa]; }
+  const hiT=(k,id)=>{ const x=S.season[k].find(e=>e.pid===id); return x?x.v:""; };
   const ts=Object.values(S.teams).sort((a,b)=>b.won-a.won||b.hdcp-a.hdcp);
-  const lead=ts[0]?.won??0;
-  const rows=ts.map((t,i)=>`<tr><td class="rank">${i+1}</td><td class="l"><b>${esc(t.name)}</b></td>
-    <td class="num-strong">${fmt(t.won)}</td><td>${fmt(t.lost)}</td><td>${t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1)+"%":"—"}</td>
-    <td class="muted">${i===0?"—":fmt(lead-t.won)}</td><td>${t.scratch.toLocaleString()}</td><td>${t.hdcp.toLocaleString()}</td></tr>`).join("");
-  const last=S.weeksBowled[S.weeksBowled.length-1];
-  const tn=id=>esc(config.teams.find(t=>t.id===id)?.name);
-  const recap=last?S.results[last].map(r=>`<tr><td class="l">${tn(r.a)} <span class="pill ${r.pa>r.pb?"win":r.pa<r.pb?"loss":""}">${fmt(r.pa)}</span></td>
-    <td>${r.ta.toLocaleString()}</td><td class="vs">vs</td><td>${r.tb.toLocaleString()}</td>
-    <td class="l"><span class="pill ${r.pb>r.pa?"win":r.pb<r.pa?"loss":""}">${fmt(r.pb)}</span> ${tn(r.b)}${r.complete?"":' <span class="pill">in progress</span>'}</td></tr>`).join(""):"";
-  return `<section class="sec"><h2>Team Standings</h2>
-   <div class="tbl"><table><thead><tr><th></th><th>Team</th><th>Won</th><th>Lost</th><th>Pct</th><th>Behind</th><th>Scratch Pins</th><th>Pins + Hdcp</th></tr></thead><tbody>${rows}</tbody></table></div>
-   <p class="note">Each match is worth ${fmt(config.ptsPerGame)} point${config.ptsPerGame==1?"":"s"} per game plus ${fmt(config.ptsSeries)} for the higher total series, all with handicap. Ties split the points. Ties in standings break on total pins with handicap.</p></section>
-   ${last?`<section class="sec"><h2>Week ${last} Results</h2><div class="tbl"><table><thead><tr><th>Team</th><th>Series + Hdcp</th><th></th><th>Series + Hdcp</th><th>Team</th></tr></thead><tbody>${recap}</tbody></table></div></section>`
-   :`<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div>`}`;
+  const head=`<div class="sheet-head"><b>${esc(config.name)}</b><span>Fishers Island Community Center${config.season?" · "+esc(config.season)+" season":""}</span>
+    <span>${w?`Week ${w} of ${config.weeks}${weeks[w]?.date?" · "+esc(weeks[w].date):""} · `:""}Handicap ${config.hcpPct}% of ${config.hcpBasis}</span></div>`;
+  const stand=`<h2 class="sh">Team Standings</h2><div class="tbl plain"><table><thead><tr><th>Place</th><th>#</th><th class="l">Team Name</th><th>Pts Won</th><th>Pts Lost</th><th>% Won</th><th>Last Wk</th><th>Scratch Pins</th><th>Hdcp Pins</th><th>Pins+Hdcp</th><th>Hi Hdcp Gm</th><th>Hi Hdcp Sr</th></tr></thead><tbody>
+    ${ts.map((t,i)=>`<tr><td>${i+1}</td><td>${tnum(t.id)}</td><td class="l"><b>${esc(t.name)}</b></td><td class="num-strong">${fmt(t.won)}</td><td>${fmt(t.lost)}</td><td>${t.won+t.lost?((t.won/(t.won+t.lost))*100).toFixed(1):""}</td>
+      <td>${lw[t.id]?fmt(lw[t.id][0])+"-"+fmt(lw[t.id][1]):""}</td><td>${t.scratch.toLocaleString()}</td><td>${(t.hdcp-t.scratch).toLocaleString()}</td><td>${t.hdcp.toLocaleString()}</td><td>${hiT("thg",t.id)}</td><td>${hiT("ths",t.id)}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  if(!w) return `<section class="sec sheet">${head}${stand}<div class="card empty">No scores yet. Open <b>Enter Scores</b> to record week 1.</div></section>`;
+  const md=weekDetail(w);
+  const mtab=side=>`<div class="tbl plain"><table><thead><tr><th class="l">Team</th>${[...Array(G)].map((_,g)=>`<th>-${g+1}-</th>`).join("")}<th>Total</th><th>Won</th></tr></thead><tbody>
+    ${md.map(m=>{ const X=m[side], pts=side==="A"?m.pa:m.pb, tot=m.done?(side==="A"?m.sa:m.sb):""; return `<tr><td class="l"><b>${tnum(X.t.id)}-${esc(X.t.name)}</b></td>${X.tot.map(v=>`<td>${v??""}</td>`).join("")}<td>${tot}</td><td class="num-strong">${fmt(pts)}</td></tr>`; }).join("")}</tbody></table></div>`;
+  const nm=w<config.weeks?((weeks[w+1]?.matchups)||roundRobin(config.teamsCount,w)).filter(x=>x.a&&x.b):[];
+  const review=`<h2 class="sh">Review of Week ${w} <small>team totals with handicap</small></h2><div class="grid2">${mtab("A")}${mtab("B")}</div>
+    ${nm.length?`<p class="note">Week ${w+1}: ${nm.map(x=>`${tnum(x.a)}-${esc(tname(x.a))} vs ${tnum(x.b)}-${esc(tname(x.b))}`).join(" · ")}</p>`:""}`;
+  const rrow=p=>{ const x=S.players[p.id]; if(isVac(p,w)) return `<tr><td class="l muted">Vacant</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    return `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${x.avg?(x.est?x.avg+"e":x.avg):""}</td><td>${x.avg?x.hcp:""}</td><td>${x.pins?x.pins.toLocaleString():""}</td><td>${x.games||""}</td><td>${x.hg||""}</td><td>${x.hs||""}</td></tr>`; };
+  const rtab=(title,ps)=>`<div><div class="sheet-sub">${esc(title)}</div><div class="tbl plain"><table><thead><tr><th class="l">Name</th><th>Avg</th><th>Hdcp</th><th>Total Pins</th><th>Games</th><th>High Game</th><th>High Series</th></tr></thead><tbody>${ps.map(rrow).join("")}</tbody></table></div></div>`;
+  const usedSubs=config.subs.filter(s=>S.players[s.id].games>0);
+  const rosters=`<h2 class="sh">Team Rosters</h2><div class="grid2 ros">${config.teams.map((t,i)=>rtab(`${i+1} - ${t.name}`,t.players)).join("")}${usedSubs.length?rtab("Substitutes",usedSubs):""}</div>
+    <p class="note">Season stats through week ${w}. Avg and Hdcp are for week ${w+1}. “e” = average not yet established (fewer than 3 games). High game and series are scratch.</p>`;
+  const cats=[["Scratch Game","sg"],["Scratch Series","ss"],["Hdcp Game","hg"],["Hdcp Series","hs"],["Team Scratch Game","tsg"],["Team Scratch Series","tss"],["Team Hdcp Game","thg"],["Team Hdcp Series","ths"]];
+  const cell=x=>x?`${esc(x.name)} <b>${x.v}</b>`:"";
+  const highs=`<h2 class="sh">High Scores</h2><div class="tbl plain"><table><thead><tr><th class="l"></th><th class="l">1st</th><th class="l">2nd</th><th class="l">3rd</th></tr></thead><tbody>
+    ${cats.map(([l,k])=>{ const t=top3(S.season[k]); return `<tr><td class="l"><b>${l}</b></td>${[0,1,2].map(i=>`<td class="l">${cell(t[i])}</td>`).join("")}</tr>`; }).join("")}</tbody></table></div>
+    <p class="note">Season to date through week ${w}.</p>`;
+  return `<section class="sec sheet">${head}${stand}${review}${rosters}${highs}</section>`;
 }
 const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
 
