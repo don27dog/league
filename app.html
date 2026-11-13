@@ -692,7 +692,26 @@ function settingsForm(c, isSetup){
     <p class="note">Match 1 is the first match listed for each week in Enter Scores. With rotation on, the matches move to the next set of lanes each week. Lanes can also be changed for a single week in Enter Scores, and the score sheet fills them in on league night.</p></div>
    <div class="row"><button class="btn" id="saveSettings" ${canWrite?"":"disabled"}>${isSetup?"Create league":"Save settings"}</button></div>`;
 }
-function renderSettings(){ $("#view").innerHTML=`<section class="sec"><h2>Settings</h2>${settingsForm(config,false)}</section>`; formula(); }
+// games bowled at the alley, counted by the score sheet (open bowling and league)
+async function loadCounts(){ const box=$("#gamesCount"); if(!box) return;
+  // league: every game in the league's records (any week, typed in or sent from the alley); absent and vacant spots aren't games bowled
+  const lg={}; for(const k in weeks){ const wk=weeks[k]; if(!wk) continue; const w=wk.week, day=wk.date||"", gm=wk.games||{};
+    for(const t of config.teams) for(const p of t.players){ if(isVac(p,w,gm)) continue; const e=gm[p.id]; if(!e||e.abs) continue;
+      const n=(e.g||[]).slice(0,config.gamesPerWeek).filter(v=>v!==""&&v!=null).length; if(n) lg[day]=(lg[day]||0)+n; } }
+  let open={}, note="";
+  if(srvOn()){ try{ const r=await srvFetch("/api/counts"); if(!r.ok) throw 0; ((await r.json()).rows||[]).filter(x=>x.kind==="open").forEach(x=>open[x.day]=(open[x.day]||0)+x.bowler); }
+    catch(_){ note=`<p class="note">Couldn't load open bowling from the league server, so only league games are shown.</p>`; } }
+  else note=`<p class="note">Connect to the league server on the Website tab to include open bowling.</p>`;
+  const t=todayLocal(), wkAgo=new Date(Date.now()-6*864e5).toISOString().slice(0,10), mon=t.slice(0,7), yr=t.slice(0,4);
+  const tot=(o,f)=>Object.entries(o).filter(([d])=>f(d)).reduce((a,[,n])=>a+n,0);
+  const per=[["Today",d=>d===t],["Last 7 days",d=>d>=wkAgo&&d<=t],["This month",d=>d.slice(0,7)===mon],["This year",d=>d.slice(0,4)===yr],["All time",()=>true]];
+  const months=[...new Set([...Object.keys(open),...Object.keys(lg)].filter(Boolean).map(d=>d.slice(0,7)))].sort().reverse().slice(0,12);
+  const mname=m=>new Date(m+"-15").toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const row=(l,f)=>{ const a=tot(open,f), b=tot(lg,f); return `<tr><td class="l">${l}</td><td>${N(a)}</td><td>${N(b)}</td><td class="num-strong">${N(a+b)}</td></tr>`; };
+  const head=`<thead><tr><th class="l"></th><th>Open bowling</th><th>League</th><th>Total games</th></tr></thead>`;
+  box.innerHTML=`<div class="tbl"><table>${head}<tbody>${per.map(([l,f])=>row(`<b>${l}</b>`,f)).join("")}</tbody></table></div>
+    ${months.length>1?`<h3>By month</h3><div class="tbl"><table>${head}<tbody>${months.map(m=>row(mname(m),d=>d.slice(0,7)===m)).join("")}</tbody></table></div>`:""}${note}`; }
+function renderSettings(){ setTimeout(loadCounts,0); $("#view").innerHTML=`<section class="sec card"><h2>Games Bowled</h2><p class="note">Every bowler's game counts once, so 5 bowlers bowling a game is 5 games. League games come from the league's records, including every past week and games typed in here. Open bowling is counted by the score sheet as games are finished, starting from when the counter went live. Only the secretary sees this.</p><div id="gamesCount"><p class="note">Loading…</p></div></section><section class="sec"><h2>Settings</h2>${settingsForm(config,false)}</section>`; formula(); }
 function renderSetup(){
   $("#lgMeta").textContent="New league";
   $("#view").innerHTML=canWrite?`<section class="sec"><h2>Set up your league</h2><p class="note">Pick the basics. You can rename teams and bowlers next, and change any of this later in Settings.</p>${settingsForm(DEFAULTS,true)}</section>
